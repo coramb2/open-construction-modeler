@@ -1,0 +1,17 @@
+[workspace]
+members = [
+    "crates/engine",
+    "crates/ifc",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Cora Baldwin <baldwincora03@gmail.com>"]
+license = "Apache-2.0"
+repository = "https://github.com/coramb2/open-construction-modeler"
+
+[workspace.dependencies]
+serde = { version = "1.0", features = ["derive"] }
+uuid = { version = "1.0", features = ["v4"] }
