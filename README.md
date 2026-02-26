@@ -17,12 +17,12 @@ cargo build
 Apache-2.0
 ```
 
-**`LICENSE`** — go to this URL and paste the full text into a file called `LICENSE`:
+**`LICENSE`** :
 ```
 https://www.apache.org/licenses/LICENSE-2.0.txt
 ```
 
-**`.gitignore`** — at the project root:
+**`.gitignore`** :
 ```
 /target
 Cargo.lock
