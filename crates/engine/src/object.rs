@@ -2,6 +2,7 @@ use crate::metadata::{ApprovalStatus, ConstructionStatus, LodLevel, Trade};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConstructionObject {
     pub id: Uuid,
@@ -51,6 +52,24 @@ mod tests {
         assert_eq!(obj.csi_code, "03 30 00");
         assert!(obj.geometry_ref.is_none());
         assert!(obj.assembly_parent.is_none());
+    }
+
+    #[test]
+    fn test_serialization_round_trip() {
+        let obj = ConstructionObject::new(
+            "Level 1 Slab".to_string(),
+            Trade::Structural,
+            LodLevel::LOD300,
+            "03 30 00".to_string(),
+            "Phase 1".to_string(),
+        );
+
+        let json = serde_json::to_string(&obj).expect("Failed to serialize");
+        let restored: ConstructionObject = serde_json::from_str(&json).expect("Failed to deserialize");
+
+        assert_eq!(obj.id, restored.id);
+        assert_eq!(obj.name, restored.name);
+        assert_eq!(obj.csi_code, restored.csi_code);
     }
 }
 
