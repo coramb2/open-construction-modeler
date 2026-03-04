@@ -14,11 +14,12 @@ pub enum Trade {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum LodLevel {
-    LOD100,
-    LOD200,
-    LOD300,
-    LOD400,
-    LOD500,
+    Lod100,
+    Lod200,
+    Lod300,
+    Lod350,
+    Lod400,
+    Lod500,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

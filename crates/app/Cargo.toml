@@ -9,3 +9,5 @@ repository.workspace = true
 [dependencies]
 engine = { path = "../engine" }
 anyhow.workspace = true
+clap.workspace = true
+uuid.workspace = true
