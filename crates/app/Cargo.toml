@@ -11,3 +11,4 @@ engine = { path = "../engine" }
 anyhow.workspace = true
 clap.workspace = true
 uuid.workspace = true
+ifc = { path = "../ifc" }

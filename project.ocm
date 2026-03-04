@@ -1,14 +1,14 @@
 {
-  "id": "8fd58dcf-3171-49a4-ba2c-77de2adf9084",
-  "name": "Site A - Tower 1",
+  "id": "abad0b18-6922-4e78-8cb9-4f128ce40035",
+  "name": "FZK House Import",
   "objects": {
-    "baf50f0a-166e-47d2-897c-a07205542ff1": {
-      "id": "baf50f0a-166e-47d2-897c-a07205542ff1",
-      "name": "Column Grid A1",
+    "1f96615d-b161-4a42-a00a-af40fbebb139": {
+      "id": "1f96615d-b161-4a42-a00a-af40fbebb139",
+      "name": "Slab-033",
       "trade": "Structural",
-      "lod": "Lod350",
-      "csi_code": "05 12 00",
-      "phase": "Phase 1",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
       "status": "NotStarted",
       "approval_status": "Draft",
       "geometry_ref": null,
@@ -19,13 +19,13 @@
         "assembly_parent": null
       }
     },
-    "11ac5661-b7ef-43b9-be02-f5233a752fc1": {
-      "id": "11ac5661-b7ef-43b9-be02-f5233a752fc1",
-      "name": "Main Supply Duct",
-      "trade": "Mechanical",
-      "lod": "Lod300",
-      "csi_code": "23 31 00",
-      "phase": "Phase 1",
+    "d011d561-4fc5-47fa-96f9-79e66228baa5": {
+      "id": "d011d561-4fc5-47fa-96f9-79e66228baa5",
+      "name": "Wand-Ext-OG-1",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
       "status": "NotStarted",
       "approval_status": "Draft",
       "geometry_ref": null,
@@ -36,14 +36,1153 @@
         "assembly_parent": null
       }
     },
-    "c049370c-be42-4e61-b460-be48280e075a": {
-      "id": "c049370c-be42-4e61-b460-be48280e075a",
-      "name": "Level 3 Slab",
+    "294c084e-105a-47c9-a07b-df590a204650": {
+      "id": "294c084e-105a-47c9-a07b-df590a204650",
+      "name": "IFC Fenster - zwei Panele - Vertikal",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "f6e91115-8036-4b5f-a285-03497f2aff01": {
+      "id": "f6e91115-8036-4b5f-a285-03497f2aff01",
+      "name": "Fenster Fl\\X2\\00FC\\X0\\gel-Sachmerkmale - Panel1",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "a881f80a-18f1-4170-9918-65375274b89c": {
+      "id": "a881f80a-18f1-4170-9918-65375274b89c",
+      "name": "T\\X2\\00FC\\X0\\r Linien-Sachmerkmale",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "f209b081-a929-4824-a3ec-3d2cb4b934a1": {
+      "id": "f209b081-a929-4824-a3ec-3d2cb4b934a1",
+      "name": "EG-Fenster-4",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "fbdef76e-3212-4502-b18d-e87e011aba2f": {
+      "id": "fbdef76e-3212-4502-b18d-e87e011aba2f",
+      "name": "Leichtbeton 102890359 240",
       "trade": "Structural",
-      "lod": "Lod300",
-      "csi_code": "03 30 00",
-      "phase": "Phase 1",
-      "status": "InProgress",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "fdd3f645-e5b1-42e8-9618-f5a89bf434ce": {
+      "id": "fdd3f645-e5b1-42e8-9618-f5a89bf434ce",
+      "name": "EG-Fenster-5",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "7371c58b-3f02-454f-96f9-946503e06e0c": {
+      "id": "7371c58b-3f02-454f-96f9-946503e06e0c",
+      "name": "Schiebet\\X2\\00FC\\X0\\r_3-teilig",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "8d6c362f-2267-4a9b-850f-81d795057b06": {
+      "id": "8d6c362f-2267-4a9b-850f-81d795057b06",
+      "name": "Fenster Linien-Sachmerkmale",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "eeb51591-4d6d-43c8-974f-826829dc5451": {
+      "id": "eeb51591-4d6d-43c8-974f-826829dc5451",
+      "name": "F6A931E0-BF76-808C-25BF-CE69B723C016",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "c7a0ec38-b99d-45e5-a341-22f170d91510": {
+      "id": "c7a0ec38-b99d-45e5-a341-22f170d91510",
+      "name": "Fenster Fl\\X2\\00FC\\X0\\gel-Sachmerkmale - Panel1",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "284c99d3-e729-4707-9d5e-de9730ae2a76": {
+      "id": "284c99d3-e729-4707-9d5e-de9730ae2a76",
+      "name": "Wand-Ext-ERDG-1",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "59578052-d6cd-477c-b53a-9adcfdb00217": {
+      "id": "59578052-d6cd-477c-b53a-9adcfdb00217",
+      "name": "Pfette-1-1",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "2a94cfab-87e4-4883-817f-b67390969e61": {
+      "id": "2a94cfab-87e4-4883-817f-b67390969e61",
+      "name": "IFC T\\X2\\00FC\\X0\\r - Eine \\X2\\00D6\\X0\\ffnunsgrichtung",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "3c3effc2-93f5-4b15-a540-c121aac19224": {
+      "id": "3c3effc2-93f5-4b15-a540-c121aac19224",
+      "name": "Wand-Ext-ERDG-4",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "56597a2e-a731-40b2-b478-3aab037c9738": {
+      "id": "56597a2e-a731-40b2-b478-3aab037c9738",
+      "name": "Wand-Ext-OG-3",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "3f844b48-6393-49a6-94ed-1b0ad36853b1": {
+      "id": "3f844b48-6393-49a6-94ed-1b0ad36853b1",
+      "name": "Radial Gradient Fill 1515460218 200 x 240",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "2ebe1d0a-97c7-4a23-b30a-5b7375c05a53": {
+      "id": "2ebe1d0a-97c7-4a23-b30a-5b7375c05a53",
+      "name": "T\\X2\\00FC\\X0\\r Linien-Sachmerkmale",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "3570a52d-ece1-4be9-bbcd-30741be94ac1": {
+      "id": "3570a52d-ece1-4be9-bbcd-30741be94ac1",
+      "name": "Wand-Int-ERDG-1",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "b3d0122a-ee51-4d63-ab64-d5f175c61e25": {
+      "id": "b3d0122a-ee51-4d63-ab64-d5f175c61e25",
+      "name": "EG-Fenster-9",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "48f8ce61-2d76-46ad-af4d-ec209c488271": {
+      "id": "48f8ce61-2d76-46ad-af4d-ec209c488271",
+      "name": "Fenster Linien-Sachmerkmale",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "56fa2a3a-bc06-4214-a60b-f8ff3ecc4436": {
+      "id": "56fa2a3a-bc06-4214-a60b-f8ff3ecc4436",
+      "name": "Solid 397409098 200",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "34ed82aa-4150-493b-9376-b2e581ea4289": {
+      "id": "34ed82aa-4150-493b-9376-b2e581ea4289",
+      "name": "T\\X2\\00FC\\X0\\rblatt-Sachmerkmale - Panel1",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "d83e1299-6fe2-43cf-9d31-2b07dc4a057f": {
+      "id": "d83e1299-6fe2-43cf-9d31-2b07dc4a057f",
+      "name": "Leichtbeton 102890359 300",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "565274fb-a935-4128-a1d8-64f8075a7aa1": {
+      "id": "565274fb-a935-4128-a1d8-64f8075a7aa1",
+      "name": "Wand-Ext-ERDG-2",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "053a35f1-30e9-424e-80df-5871eec6997f": {
+      "id": "053a35f1-30e9-424e-80df-5871eec6997f",
+      "name": "Innentuer-3",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "49ca6f10-3c2d-46e2-949e-b8c38eee63ad": {
+      "id": "49ca6f10-3c2d-46e2-949e-b8c38eee63ad",
+      "name": "EG-Fenster-7",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "f6862e63-652b-4d90-bd47-50de02868ffa": {
+      "id": "f6862e63-652b-4d90-bd47-50de02868ffa",
+      "name": "IFC T\\X2\\00FC\\X0\\r - Eine \\X2\\00D6\\X0\\ffnunsgrichtung",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "0afba007-3c18-4f09-ae4a-b1c897f029cc": {
+      "id": "0afba007-3c18-4f09-ae4a-b1c897f029cc",
+      "name": "T\\X2\\00FC\\X0\\rblatt-Sachmerkmale - Panel2",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "83a9e2c5-3793-478f-8ce3-14fa4c31d70b": {
+      "id": "83a9e2c5-3793-478f-8ce3-14fa4c31d70b",
+      "name": "Wand-Ext-OG-4",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "64054fc2-6311-4912-9b4a-2ab25995d2d7": {
+      "id": "64054fc2-6311-4912-9b4a-2ab25995d2d7",
+      "name": "OG-Fenster-1",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "5b0e644e-21f1-4c73-8912-161a6b183877": {
+      "id": "5b0e644e-21f1-4c73-8912-161a6b183877",
+      "name": "Terrassentuer",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "410fdf94-ae7e-40ab-befb-ca3b121be9c7": {
+      "id": "410fdf94-ae7e-40ab-befb-ca3b121be9c7",
+      "name": "Wendeltreppe",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "abdfba75-1d58-4f98-8ff1-4920fac7a074": {
+      "id": "abdfba75-1d58-4f98-8ff1-4920fac7a074",
+      "name": "Wand-Int-ERDG-4",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "e00feccd-ef64-43b0-a659-c729e1f3fb0c": {
+      "id": "e00feccd-ef64-43b0-a659-c729e1f3fb0c",
+      "name": "EG-Fenster-1",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "5069a6db-8d5a-44b1-a9a8-dcde9ef0dcad": {
+      "id": "5069a6db-8d5a-44b1-a9a8-dcde9ef0dcad",
+      "name": "Innentuer-2",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "330f3c50-e775-4696-aefd-43becdbe48cf": {
+      "id": "330f3c50-e775-4696-aefd-43becdbe48cf",
+      "name": "Wand-Int-ERDG-3",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "be68e01e-0dc9-4c78-bfa4-6afb0c46565f": {
+      "id": "be68e01e-0dc9-4c78-bfa4-6afb0c46565f",
+      "name": "IFC T\\X2\\00FC\\X0\\r - Eine \\X2\\00D6\\X0\\ffnunsgrichtung",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "1952c4f9-a27b-4b62-aeaa-a999fc237fe7": {
+      "id": "1952c4f9-a27b-4b62-aeaa-a999fc237fe7",
+      "name": "EG-Fenster-6",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "c67c5a11-a1ef-40ed-a3b8-a9b86b2a1d59": {
+      "id": "c67c5a11-a1ef-40ed-a3b8-a9b86b2a1d59",
+      "name": "Dach-1",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "3cbaef9f-0bdc-4ffa-b806-5531dda4a99f": {
+      "id": "3cbaef9f-0bdc-4ffa-b806-5531dda4a99f",
+      "name": "EG-Fenster-2",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "c7d3fb1e-9be1-428d-a570-772bd4292b74": {
+      "id": "c7d3fb1e-9be1-428d-a570-772bd4292b74",
+      "name": "Eingangst\\X2\\00FC\\X0\\r",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "2137d603-33db-4688-b5fd-3edb7d0f167d": {
+      "id": "2137d603-33db-4688-b5fd-3edb7d0f167d",
+      "name": "EG-Fenster-8",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "f226e788-768e-4308-8126-31cad0611ee0": {
+      "id": "f226e788-768e-4308-8126-31cad0611ee0",
+      "name": "Fenster Fl\\X2\\00FC\\X0\\gel-Sachmerkmale - Panel2",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "fbb8d3c6-6aaa-4f75-a9c9-ad4388f93809": {
+      "id": "fbb8d3c6-6aaa-4f75-a9c9-ad4388f93809",
+      "name": "IFC Fenster - zwei Panele - Vertikal",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "c5620a31-b749-43bf-9900-7d453b9871ed": {
+      "id": "c5620a31-b749-43bf-9900-7d453b9871ed",
+      "name": "EG-Fenster-3",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "b07bd763-42a9-41d0-a720-a795cfd792d0": {
+      "id": "b07bd763-42a9-41d0-a720-a795cfd792d0",
+      "name": "T\\X2\\00FC\\X0\\rblatt-Sachmerkmale - Panel1",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "86dbf5f1-7f2c-4921-830b-a5f9d7613faa": {
+      "id": "86dbf5f1-7f2c-4921-830b-a5f9d7613faa",
+      "name": "Fenster Fl\\X2\\00FC\\X0\\gel-Sachmerkmale - Panel2",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "f1726985-b94d-430f-a6f8-0f7902519ad6": {
+      "id": "f1726985-b94d-430f-a6f8-0f7902519ad6",
+      "name": "Dach-2",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "dcdb3db3-a237-4c48-9078-6a71b02b38cc": {
+      "id": "dcdb3db3-a237-4c48-9078-6a71b02b38cc",
+      "name": "Wand-Ext-OG-2",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "4aeeb2a0-101f-48be-a4a1-e8de04b1aa42": {
+      "id": "4aeeb2a0-101f-48be-a4a1-e8de04b1aa42",
+      "name": "OG-Fenster-2",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "0540b592-2b29-4047-8c00-450df0f846ff": {
+      "id": "0540b592-2b29-4047-8c00-450df0f846ff",
+      "name": "Fenster Fl\\X2\\00FC\\X0\\gel-Sachmerkmale - Panel1",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "bd249c8b-8162-4042-86ef-56d6914625fa": {
+      "id": "bd249c8b-8162-4042-86ef-56d6914625fa",
+      "name": "T\\X2\\00FC\\X0\\r Linien-Sachmerkmale",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "00a8b7ec-e074-47db-b46a-e2f0f81b4c74": {
+      "id": "00a8b7ec-e074-47db-b46a-e2f0f81b4c74",
+      "name": "Bodenplatte",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "8b9f40ff-3f3d-4041-a525-bb385fb66bde": {
+      "id": "8b9f40ff-3f3d-4041-a525-bb385fb66bde",
+      "name": "Pfette-2-1",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "ec66d252-2ee0-442a-9835-2f03c7d76c76": {
+      "id": "ec66d252-2ee0-442a-9835-2f03c7d76c76",
+      "name": "Haustuer",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "4fe38e80-555d-4273-93aa-9b34b4fb54ac": {
+      "id": "4fe38e80-555d-4273-93aa-9b34b4fb54ac",
+      "name": "Innentuer-1",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "b04b3d69-0f0e-4fda-a9a6-0a4475a94b7c": {
+      "id": "b04b3d69-0f0e-4fda-a9a6-0a4475a94b7c",
+      "name": "Unterzug-1",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "abd8be8a-8814-4bc9-ac5f-587e4d57d6bb": {
+      "id": "abd8be8a-8814-4bc9-ac5f-587e4d57d6bb",
+      "name": "T\\X2\\00FC\\X0\\r Linien-Sachmerkmale",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "7afb7faf-227a-47af-886c-bfdadbbd798d": {
+      "id": "7afb7faf-227a-47af-886c-bfdadbbd798d",
+      "name": "Solid 397409098 200",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "9c68bdf6-633a-4586-8c76-814d3b23b85b": {
+      "id": "9c68bdf6-633a-4586-8c76-814d3b23b85b",
+      "name": "T\\X2\\00FC\\X0\\rblatt-Sachmerkmale - Panel1",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "6e6ed826-0293-47b0-a534-6b1e530aa69a": {
+      "id": "6e6ed826-0293-47b0-a534-6b1e530aa69a",
+      "name": "Rundfenster 13",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "f49b2a88-f080-4bf5-b8a8-d8ab8c6d5e31": {
+      "id": "f49b2a88-f080-4bf5-b8a8-d8ab8c6d5e31",
+      "name": "Wand-Int-ERDG-5",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "de707dec-5d95-4933-a8b2-8846d79e6817": {
+      "id": "de707dec-5d95-4933-a8b2-8846d79e6817",
+      "name": "Fenster Linien-Sachmerkmale",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "5ef43848-63ca-4782-96d2-be931a4942dd": {
+      "id": "5ef43848-63ca-4782-96d2-be931a4942dd",
+      "name": "T\\X2\\00FC\\X0\\rblatt-Sachmerkmale - Panel1",
+      "trade": "Architectural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "52079ef3-c721-4088-acc6-abfd5d72679b": {
+      "id": "52079ef3-c721-4088-acc6-abfd5d72679b",
+      "name": "Wand-Ext-ERDG-3",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "4a936a6d-9480-4c9a-81b2-053e082217d9": {
+      "id": "4a936a6d-9480-4c9a-81b2-053e082217d9",
+      "name": "Stahlbeton 65690 200",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "73044d45-59f3-45a2-acc2-4e984969937c": {
+      "id": "73044d45-59f3-45a2-acc2-4e984969937c",
+      "name": "Wand-Int-ERDG-2",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
+      "approval_status": "Draft",
+      "geometry_ref": null,
+      "relations": {
+        "depends_on": [],
+        "sequenced_after": [],
+        "hosted_by": null,
+        "assembly_parent": null
+      }
+    },
+    "96d90b2b-fb5f-48ab-93b3-8b8521d1109f": {
+      "id": "96d90b2b-fb5f-48ab-93b3-8b8521d1109f",
+      "name": "First",
+      "trade": "Structural",
+      "lod": "Lod200",
+      "csi_code": "",
+      "phase": "",
+      "status": "NotStarted",
       "approval_status": "Draft",
       "geometry_ref": null,
       "relations": {

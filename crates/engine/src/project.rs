@@ -54,7 +54,7 @@ mod tests {
         let obj = ConstructionObject::new(
             "Foundation Wall".to_string(),
             Trade::Structural,
-            LodLevel::LOD200,
+            LodLevel::Lod200,
             "03 20 00".to_string(),
             "Phase 1".to_string(),
         );
@@ -71,7 +71,7 @@ mod tests {
         let obj = ConstructionObject::new(
             "Test Beam".to_string(),
             Trade::Structural,
-            LodLevel::LOD300,
+            LodLevel::Lod300,
             "05 12 00".to_string(),
             "Phase 2".to_string(),
         );

@@ -3,6 +3,7 @@ use clap::{Parser, Subcommand};
 use engine::metadata::{ConstructionStatus, LodLevel, Trade};
 use engine::object::ConstructionObject;
 use engine::project::Project;
+use ifc;
 
 #[derive(Parser)]
 #[command(name = "ocm")]
@@ -39,6 +40,9 @@ enum Commands {
     Status {
         id: String,
         status: String,
+    },
+    Import {
+        file: String,
     },
 }
 
@@ -144,6 +148,17 @@ fn main() -> Result<()> {
             } else {
                 println!("Object not found: {}", id);
             }
+        }
+
+        Commands::Import { file } => {
+            let mut project = Project::load(&cli.project)?;
+            let objects = ifc::parser::parse_ifc_file(&file)?;
+            let count = objects.len();
+            for obj in objects {
+                project.add_object(obj);
+            }
+            project.save(&cli.project)?;
+            println!("Imported {} objects from {}", count, file);
         }
     }
     Ok(())
