@@ -12,6 +12,7 @@ interface ConstructionObject {
 interface ViewportProps {
     objects: ConstructionObject[]
     selectedId: string | null
+    onSelect: (id: string) => void
 }
 
 const TRADE_COLORS: Record<string, number> = {
@@ -22,7 +23,7 @@ const TRADE_COLORS: Record<string, number> = {
     Architectural: 0xaaaaaa,
 }
 
-export default function Viewport({ objects, selectedId }: ViewportProps) {
+export default function Viewport({ objects, selectedId, onSelect }: ViewportProps) {
     const mountRef = useRef<HTMLDivElement>(null)
     const sceneRef = useRef<THREE.Scene | null>(null)
     const meshMapRef = useRef<Record<string, THREE.Mesh>>({})
@@ -48,10 +49,32 @@ export default function Viewport({ objects, selectedId }: ViewportProps) {
         renderer.setSize(w, h)
         mount.appendChild(renderer.domElement)
 
+        // Controls setup
         const controls = new OrbitControls(camera, renderer.domElement)
         controls.enableDamping = true
         controls.dampingFactor = 0.05
         controls.target.set(0, 0, 0)
+
+        // Raycaster for object selection
+        const raycaster = new THREE.Raycaster()
+        const mouse = new THREE.Vector2()
+
+        const handleClick = (event: MouseEvent) => {
+            const rect = mount.getBoundingClientRect()
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
+
+            raycaster.setFromCamera(mouse, camera)
+            const intersects = raycaster.intersectObjects(scene.children)
+
+            if (intersects.length > 0) {
+                const hit = intersects[0].object
+                if (hit.userData.id) {
+                    onSelect(hit.userData.id)
+                }
+            }
+        }
+        mount.addEventListener('click', handleClick)
 
         // Lights
         scene.add(new THREE.AmbientLight(0xffffff, 0.6))
@@ -71,6 +94,7 @@ export default function Viewport({ objects, selectedId }: ViewportProps) {
         }
         animate()
 
+        // Handle window resize
         const handleResize = () => {
             const w = mount.clientWidth
             const h = mount.clientHeight
@@ -87,6 +111,7 @@ export default function Viewport({ objects, selectedId }: ViewportProps) {
             mount.removeChild(renderer.domElement)
             renderer.dispose()
             controls.dispose()
+            mount.removeEventListener('click', handleClick)
         }
     } , [])
 

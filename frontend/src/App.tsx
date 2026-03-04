@@ -91,7 +91,11 @@ function App() {
 
       {/* Center — Three.js Viewport */}
       <div className="flex-1">
-        <Viewport objects={objects} selectedId={selectedId} />
+        <Viewport 
+          objects={objects} 
+          selectedId={selectedId} 
+          onSelect={setSelectedId}
+        />
       </div>
 
       {/* Right Panel — Inspector */}
