@@ -40,3 +40,19 @@ an early release target.
 2. One-click publish/share workflow
 3. NWC + DWG import alongside IFC
 4. Standalone clash analysis mode
+
+## Object Category Reference (from Revit/BIM ecosystem)
+
+### Missing Trades to Add Later
+- Site (fences, landscaping, parking, external works)
+- Equipment (cranes, scaffolding, temporary works)
+- Finishes (cabinetry, railings, flooring)
+
+### Geometry Engine Decision
+- Rejected: Unity (licensing risk, no engineering precision)
+- Short term rendering: wgpu (Rust-native, WebGPU)
+- Geometry kernel: Open CASCADE via FFI (BREP, fabrication precision)
+- Unity potential use: AR/VR viewer target via glTF export only
+
+### Content Ecosystem Reference
+- BIMobject, RevitCity, NBS Source — reference for Part 2 model repository UX
