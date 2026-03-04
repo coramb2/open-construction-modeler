@@ -1,4 +1,16 @@
+# Rust
 /target
 Cargo.lock
+
+# Node
+frontend/node_modules
+frontend/dist
+frontend/.vite
+
+# Tauri
+src-tauri/target
+
+# System
 .DS_Store
 *.swp
+*.env
