@@ -1,7 +1,7 @@
 use crate::metadata::{ApprovalStatus, ConstructionStatus, LodLevel, Trade};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-
+use crate::relations::Relations;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConstructionObject {
@@ -14,7 +14,7 @@ pub struct ConstructionObject {
     pub status: ConstructionStatus,
     pub approval_status: ApprovalStatus,
     pub geometry_ref: Option<String>,
-    pub assembly_parent: Option<Uuid>,
+    pub relations: Relations,
 }
 
 impl ConstructionObject {
@@ -29,7 +29,7 @@ impl ConstructionObject {
             status: ConstructionStatus::NotStarted,
             approval_status: ApprovalStatus::Draft,
             geometry_ref: None,
-            assembly_parent: None,
+            relations: Relations::new(),
         }
     }
 }
@@ -51,7 +51,6 @@ mod tests {
         assert_eq!(obj.name, "Level 1 Slab");
         assert_eq!(obj.csi_code, "03 30 00");
         assert!(obj.geometry_ref.is_none());
-        assert!(obj.assembly_parent.is_none());
     }
 
     #[test]
