@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { rendererReference } from "three/tsl";
 
 interface ConstructionObject {
@@ -47,6 +48,11 @@ export default function Viewport({ objects, selectedId }: ViewportProps) {
         renderer.setSize(w, h)
         mount.appendChild(renderer.domElement)
 
+        const controls = new OrbitControls(camera, renderer.domElement)
+        controls.enableDamping = true
+        controls.dampingFactor = 0.05
+        controls.target.set(0, 0, 0)
+
         // Lights
         scene.add(new THREE.AmbientLight(0xffffff, 0.6))
         const dir = new THREE.DirectionalLight(0xffffff, 0.8)
@@ -60,15 +66,27 @@ export default function Viewport({ objects, selectedId }: ViewportProps) {
         let animId: number
         const animate = () => {
             animId = requestAnimationFrame(animate)
+            controls.update()
             renderer.render(scene, camera)
         }
         animate()
 
+        const handleResize = () => {
+            const w = mount.clientWidth
+            const h = mount.clientHeight
+            camera.aspect = w / h
+            camera.updateProjectionMatrix()
+            renderer.setSize(w, h)
+        }
+        window.addEventListener('resize', handleResize)
+
         // Cleanup on unmount
         return () => {
             cancelAnimationFrame(animId)
+            window.removeEventListener('resize', handleResize)
             mount.removeChild(renderer.domElement)
             renderer.dispose()
+            controls.dispose()
         }
     } , [])
 
