@@ -2,6 +2,8 @@ use std::collections::HashMap;
 use crate::object::ConstructionObject;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use anyhow::Result;
+use std::fs;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Project {
@@ -21,10 +23,22 @@ impl Project {
 
     pub fn add_object(&mut self, object: ConstructionObject) {
     self.objects.insert(object.id, object);
-}
+    }
 
     pub fn get_object(&self, id: &Uuid) -> Option<&ConstructionObject> {
         self.objects.get(id)
+    }
+
+    pub fn save(&self, path: &str) -> Result<()> {
+        let json = serde_json::to_string_pretty(self)?;
+        fs::write(path, json)?;
+        Ok(())
+    }
+
+    pub fn load(path: &str) -> Result<Self> {
+        let json = fs::read_to_string(path)?;
+        let project = serde_json::from_str(&json)?;
+        Ok(project)
     }
 }
 
@@ -49,5 +63,25 @@ mod tests {
 
         let retrieved_obj = project.get_object(&obj_id).unwrap();
         assert_eq!(retrieved_obj.name, "Foundation Wall");
+    }
+
+    #[test]
+    fn test_project_save_and_load() {
+        let mut project = Project::new("Save Test".to_string());
+        let obj = ConstructionObject::new(
+            "Test Beam".to_string(),
+            Trade::Structural,
+            LodLevel::LOD300,
+            "05 12 00".to_string(),
+            "Phase 2".to_string(),
+        );
+        project.add_object(obj);
+
+        project.save("/tmp/test_project.ocm").unwrap();
+        let loaded = Project::load("/tmp/test_project.ocm").unwrap();
+
+        assert_eq!(project.name, loaded.name);
+        assert_eq!(project.id, loaded.id);
+        assert_eq!(project.objects.len(), loaded.objects.len());
     }
 }
