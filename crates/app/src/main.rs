@@ -94,8 +94,8 @@ fn main() -> Result<()> {
             println!("Project: {}", project.name);
             println!("{} object(s)\n", project.objects.len());
             for obj in project.objects.values() {
-                println!(" [{}] {} - {:?} | {:?} | {}",
-                    obj.id, obj.name, obj.trade, obj.lod, obj.csi_code);
+                println!(" [{}] {} - {:?} | {:?} | {} | {:?}",
+                    obj.id, obj.name, obj.trade, obj.lod, obj.csi_code, obj.status);
             }
         }
 

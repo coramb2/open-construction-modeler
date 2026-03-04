@@ -2,12 +2,12 @@
   "id": "8fd58dcf-3171-49a4-ba2c-77de2adf9084",
   "name": "Site A - Tower 1",
   "objects": {
-    "11ac5661-b7ef-43b9-be02-f5233a752fc1": {
-      "id": "11ac5661-b7ef-43b9-be02-f5233a752fc1",
-      "name": "Main Supply Duct",
-      "trade": "Mechanical",
-      "lod": "Lod300",
-      "csi_code": "23 31 00",
+    "baf50f0a-166e-47d2-897c-a07205542ff1": {
+      "id": "baf50f0a-166e-47d2-897c-a07205542ff1",
+      "name": "Column Grid A1",
+      "trade": "Structural",
+      "lod": "Lod350",
+      "csi_code": "05 12 00",
       "phase": "Phase 1",
       "status": "NotStarted",
       "approval_status": "Draft",
@@ -19,12 +19,12 @@
         "assembly_parent": null
       }
     },
-    "baf50f0a-166e-47d2-897c-a07205542ff1": {
-      "id": "baf50f0a-166e-47d2-897c-a07205542ff1",
-      "name": "Column Grid A1",
-      "trade": "Structural",
-      "lod": "Lod350",
-      "csi_code": "05 12 00",
+    "11ac5661-b7ef-43b9-be02-f5233a752fc1": {
+      "id": "11ac5661-b7ef-43b9-be02-f5233a752fc1",
+      "name": "Main Supply Duct",
+      "trade": "Mechanical",
+      "lod": "Lod300",
+      "csi_code": "23 31 00",
       "phase": "Phase 1",
       "status": "NotStarted",
       "approval_status": "Draft",
@@ -43,7 +43,7 @@
       "lod": "Lod300",
       "csi_code": "03 30 00",
       "phase": "Phase 1",
-      "status": "NotStarted",
+      "status": "InProgress",
       "approval_status": "Draft",
       "geometry_ref": null,
       "relations": {
