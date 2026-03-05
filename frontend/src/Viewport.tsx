@@ -1,12 +1,13 @@
 import { useEffect, useRef } from "react";
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { rendererReference } from "three/tsl";
 
 interface ConstructionObject {
     id: string
     name: string
     trade: string
+    position: [number, number, number] | null
+    dimensions: [number, number, number] | null
 }
 
 interface ViewportProps {
@@ -125,19 +126,28 @@ export default function Viewport({ objects, selectedId, onSelect }: ViewportProp
         })
         meshMapRef.current = {}
 
-        // Each object as colored box
+        // Each object as colored box with real dimensions if available
         objects.forEach((obj, i) => {
             const color = TRADE_COLORS[obj.trade] ?? 0x888888
-            const geo = new THREE.BoxGeometry(1.5, 1, 1.5)
+
+            const w = obj.dimensions ? obj.dimensions[0] : 1.5
+            const d = obj.dimensions ? obj.dimensions[1] : 1.5
+            const h = obj.dimensions ? obj.dimensions[2] : 1.0
+
+            const geo = new THREE.BoxGeometry(w, h, d)
             const mat = new THREE.MeshLambertMaterial({ color })
             const mesh = new THREE.Mesh(geo, mat)
 
-            const cols = 6
-            const x = (i % cols) * 2.5 - (cols * 1.25)
-            const y = Math.floor(i / cols) * 2.5 - 4
-            mesh.position.set(x, 0.5, y)
+            if (obj.position && (obj.position[0] !== 0 || obj.position[1] !== 0)) {
+                mesh.position.set(obj.position[0], h / 2, obj.position[1])
+            } else {
+                const cols = 6
+                const x = (i % cols) * 2.5 - (cols * 1.25)
+                const z = Math.floor(i / cols) * 2.5 - 4
+                mesh.position.set(x, h / 2, z)
+            }
+
             mesh.userData.id = obj.id
-            
             scene.add(mesh)
             meshMapRef.current[obj.id] = mesh
         })

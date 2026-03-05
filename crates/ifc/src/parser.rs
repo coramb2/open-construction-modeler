@@ -2,6 +2,7 @@ use anyhow::Result;
 use engine::metadata::{LodLevel, Trade};
 use engine::object::ConstructionObject;
 use std::fs;
+use crate::geometry::{IfcIndex, extract_geometry};
 
 fn detect_trade(line: &str) -> Option<Trade> {
     if line.contains("IFCWALL") || line.contains("IFCSLAB") ||
@@ -19,6 +20,7 @@ fn detect_trade(line: &str) -> Option<Trade> {
 
 pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
     let contents = fs::read_to_string(path)?;
+    let index = IfcIndex::from_file(path)?;
     let mut objects = Vec::new();
 
     for line in contents.lines() {
@@ -42,13 +44,20 @@ pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
             continue;
         }
 
-        let obj = ConstructionObject::new(
+        // Extract geometry
+        let geo = extract_geometry(&index, line);
+
+        let mut obj = ConstructionObject::new(
             name.to_string(),
             trade,
             LodLevel::Lod200,
             String::new(),
             String::new(),
         );
+
+        obj.position = Some([geo.placement.x, geo.placement.y, geo.placement.z]);
+        obj.dimensions = Some([geo.width, geo.depth, geo.height]);
+        
         objects.push(obj);
     }
 

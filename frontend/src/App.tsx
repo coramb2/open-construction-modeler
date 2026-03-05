@@ -12,6 +12,8 @@ interface ConstructionObject {
   phase: string
   status: string
   approval_status: string
+  position: [number, number, number] | null
+  dimensions: [number, number, number] | null
 }
 
 interface Project {

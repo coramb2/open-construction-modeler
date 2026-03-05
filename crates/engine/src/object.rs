@@ -14,7 +14,11 @@ pub struct ConstructionObject {
     pub status: ConstructionStatus,
     pub approval_status: ApprovalStatus,
     pub geometry_ref: Option<String>,
+    pub assembly_parent: Option<Uuid>,
     pub relations: Relations,
+
+    pub position: Option<[f64; 3]>,
+    pub dimensions: Option<[f64; 3]>,
 }
 
 impl ConstructionObject {
@@ -29,7 +33,10 @@ impl ConstructionObject {
             status: ConstructionStatus::NotStarted,
             approval_status: ApprovalStatus::Draft,
             geometry_ref: None,
+            assembly_parent: None,
             relations: Relations::new(),
+            position: None,
+            dimensions: None,
         }
     }
 }
