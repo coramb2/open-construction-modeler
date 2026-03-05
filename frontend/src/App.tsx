@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import Viewport from './Viewport'
+import { open } from '@tauri-apps/plugin-dialog'
 
 interface ConstructionObject {
   id: string
@@ -30,14 +31,22 @@ function App() {
 
   const loadProject = async () => {
     try {
-      const path = await invoke<string>('get_project_path')
-      const data = await invoke<Project>('load_project', { path })
-      setProject(data)
-      setError(null)
-    } catch (e) {
-      setError(String(e))
-    }
+      const path = await open({
+        filters: [{
+          name: 'Construction Model',
+          extensions: ['ocm', 'ifc']
+        }]
+    })
+    if (!path) return // User cancelled
+
+    const data = await invoke<Project>('load_project', { path })
+    setProject(data)
+    setError(null)
+  } catch (e) {
+    setError(String(e))
   }
+
+}
 
   const objects = project ? Object.values(project.objects) : []
 
