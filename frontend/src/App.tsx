@@ -26,6 +26,23 @@ function App() {
   const [project, setProject] = useState<Project | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [hiddenTrades, setHiddenTrades] = useState<Set<string>>(new Set())
+
+  const objects = project ? Object.values(project.objects) : []
+
+  const toggleTrade = (trade: string)=> {
+    setHiddenTrades(prev => {
+      const next = new Set(prev)
+      if (next.has(trade)) {
+        next.delete(trade)
+      } else {
+        next.add(trade)
+      }
+      return next
+    })
+  }
+
+  const visibleObjects = objects.filter(o => !hiddenTrades.has(o.trade))
 
   const selectedObject = selectedId && project
     ? project.objects[selectedId]
@@ -50,8 +67,6 @@ function App() {
 
 }
 
-  const objects = project ? Object.values(project.objects) : []
-
   return (
     <div className="flex h-screen bg-gray-900 text-gray-100 font-mono">
 
@@ -67,9 +82,36 @@ function App() {
           {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
         </div>
 
+      {/* Trade Filter Toggles */}
+    {project && (
+      <div className="px-3 py-2 border-b border-gray-700 flex flex-wrap gap-1">
+        {Object.entries({
+          Structural: '4488ff',
+          Architectural: 'aaaaaa',
+          Mechanical: 'ff8844',
+          Electrical: 'ffee44',
+          Plumbing: '44ffaa',
+        }).map(([trade, color]) => {
+          const hidden = hiddenTrades.has(trade)
+          return (
+            <button
+              key={trade}
+              onClick={() => toggleTrade(trade)}
+              className={`text-xs px-2 py-0.5 rounded border transition-opacity ${
+                hidden ? 'opacity-30' : 'opacity-100'
+              }`}
+              style={{ borderColor: `#${color}`, color: `#${color}` }}
+            >
+              {trade}
+            </button>
+          )
+        })}
+      </div>
+    )}
+
         <div className="flex-1 overflow-y-auto p-2">
-          {objects.length > 0 ? (
-            objects.map(obj => (
+          {visibleObjects.length > 0 ? (
+            visibleObjects.map(obj => (
               <div
                 key={obj.id}
                 onClick={() => setSelectedId(obj.id)}
