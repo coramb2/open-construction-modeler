@@ -40,7 +40,7 @@ pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
         }
 
         let name = parts[3];
-        if name.is_empty() {
+        if name.is_empty() || is_noise_object(name) {
             continue;
         }
 
@@ -62,6 +62,16 @@ pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
     }
 
     Ok(objects)
+}
+
+fn is_noise_object(name: &str) -> bool {
+    name.contains("Sachmerkmale") ||
+    name.contains("Linien") ||
+    name.contains("Flächen") ||
+    name.contains("Solid ") ||
+    name.contains("Radial ") ||
+    name.contains("\\X2\\") ||
+    name.is_empty()
 }
 
 #[cfg(test)]

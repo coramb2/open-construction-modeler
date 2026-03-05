@@ -131,15 +131,15 @@ export default function Viewport({ objects, selectedId, onSelect }: ViewportProp
             const color = TRADE_COLORS[obj.trade] ?? 0x888888
 
             const w = obj.dimensions ? obj.dimensions[0] : 1.5
-            const d = obj.dimensions ? obj.dimensions[1] : 1.5
-            const h = obj.dimensions ? obj.dimensions[2] : 1.0
+            const d = obj.dimensions ? obj.dimensions[2] : 1.5
+            const h = obj.dimensions ? obj.dimensions[1] : 1.0
 
             const geo = new THREE.BoxGeometry(w, h, d)
             const mat = new THREE.MeshLambertMaterial({ color })
             const mesh = new THREE.Mesh(geo, mat)
 
             if (obj.position && (obj.position[0] !== 0 || obj.position[1] !== 0)) {
-                mesh.position.set(obj.position[0], h / 2, obj.position[1])
+                mesh.position.set(obj.position[0], h / 2, -obj.position[1])
             } else {
                 const cols = 6
                 const x = (i % cols) * 2.5 - (cols * 1.25)
