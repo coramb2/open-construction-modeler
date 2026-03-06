@@ -8,6 +8,7 @@ pub struct ConstructionObject {
     pub id: Uuid,
     pub name: String,
     pub trade: Trade,
+    pub entity_type: Option<String>,
     pub lod: LodLevel,
     pub csi_code: String,
     pub phase: String,
@@ -22,11 +23,13 @@ pub struct ConstructionObject {
 }
 
 impl ConstructionObject {
-    pub fn new(name: String, trade: Trade, lod: LodLevel, csi_code: String, phase: String) -> Self {
+    pub fn new(name: String, trade: Trade, entity_type: Option<String>,
+         lod:LodLevel, csi_code: String, phase: String) -> Self {
         Self {
             id: Uuid::new_v4(),
             name,
             trade,
+            entity_type,
             lod,
             csi_code,
             phase,
@@ -50,6 +53,7 @@ mod tests {
         let obj = ConstructionObject::new(
             "Level 1 Slab".to_string(),
             Trade::Structural,
+            None,
             LodLevel::Lod300,
             "03 30 00".to_string(),
             "Phase 1".to_string(),
@@ -65,6 +69,7 @@ mod tests {
         let obj = ConstructionObject::new(
             "Level 1 Slab".to_string(),
             Trade::Structural,
+            None,
             LodLevel::Lod300,
             "03 30 00".to_string(),
             "Phase 1".to_string(),

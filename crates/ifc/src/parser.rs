@@ -2,7 +2,7 @@ use anyhow::Result;
 use engine::metadata::{LodLevel, Trade};
 use engine::object::ConstructionObject;
 use std::fs;
-use crate::geometry::{IfcIndex, extract_geometry};
+use crate::geometry::{IfcIndex, extract_geometry, get_entity_type};
 
 fn detect_trade(line: &str) -> Option<Trade> {
     if line.contains("IFCWALL") || line.contains("IFCSLAB") ||
@@ -18,6 +18,15 @@ fn detect_trade(line: &str) -> Option<Trade> {
     }
 }
 
+fn is_noise_object(name: &str) -> bool {
+    name.contains("Sachmerkmale") ||
+    name.contains("Linien") ||
+    name.contains("Solid ") ||
+    name.contains("Radial ") ||
+    name.contains("\\X2\\") ||
+    name.is_empty()
+}
+
 pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
     let contents = fs::read_to_string(path)?;
     let index = IfcIndex::from_file(path)?;
@@ -31,7 +40,7 @@ pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
 
         let trade = match detect_trade(line) {
             Some(t) => t,
-            None => continue, // skip lines we don't recognize
+            None => continue,
         };
 
         let parts: Vec<&str> = line.split('\'').collect();
@@ -44,12 +53,14 @@ pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
             continue;
         }
 
-        // Extract geometry
+        // Extract entity type and geometry — both inside the loop
+        let entity_type = get_entity_type(line).map(|s| s.to_string());
         let geo = extract_geometry(&index, line);
 
         let mut obj = ConstructionObject::new(
             name.to_string(),
             trade,
+            entity_type,
             LodLevel::Lod200,
             String::new(),
             String::new(),
@@ -57,21 +68,11 @@ pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
 
         obj.position = Some([geo.placement.x, geo.placement.y, geo.placement.z]);
         obj.dimensions = Some([geo.width, geo.depth, geo.height]);
-        
+
         objects.push(obj);
     }
 
     Ok(objects)
-}
-
-fn is_noise_object(name: &str) -> bool {
-    name.contains("Sachmerkmale") ||
-    name.contains("Linien") ||
-    name.contains("Flächen") ||
-    name.contains("Solid ") ||
-    name.contains("Radial ") ||
-    name.contains("\\X2\\") ||
-    name.is_empty()
 }
 
 #[cfg(test)]

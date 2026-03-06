@@ -27,6 +27,8 @@ enum Commands {
         #[arg(long)]
         trade: String,
         #[arg(long)]
+        entity_type: Option<String>,
+        #[arg(long)]
         lod: u32,
         #[arg(long)]
         csi: String,
@@ -103,11 +105,13 @@ fn main() -> Result<()> {
             }
         }
 
-        Commands::Add { name, trade, lod, csi, phase } => {
+        Commands::Add { name, trade,
+             entity_type, lod, csi, phase } => {
             let mut project = Project::load(&cli.project)?;
             let obj = ConstructionObject::new(
                 name.clone(),
                 parse_trade(&trade),
+                entity_type,
                 parse_lod(lod)?,
                 csi,
                 phase,

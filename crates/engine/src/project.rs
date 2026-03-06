@@ -44,6 +44,8 @@ impl Project {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::map::Entry;
+
     use super::*;
     use crate::metadata::{LodLevel, Trade};
 
@@ -54,6 +56,7 @@ mod tests {
         let obj = ConstructionObject::new(
             "Foundation Wall".to_string(),
             Trade::Structural,
+            None,
             LodLevel::Lod200,
             "03 20 00".to_string(),
             "Phase 1".to_string(),
@@ -71,6 +74,7 @@ mod tests {
         let obj = ConstructionObject::new(
             "Test Beam".to_string(),
             Trade::Structural,
+            None,
             LodLevel::Lod300,
             "05 12 00".to_string(),
             "Phase 2".to_string(),
