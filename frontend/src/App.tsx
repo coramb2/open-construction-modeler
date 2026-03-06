@@ -15,6 +15,7 @@ interface ConstructionObject {
   entity_type: string | null
   position: [number, number, number] | null
   dimensions: [number, number, number] | null
+  rotation: [number, number, number] | null
 }
 
 interface Project {

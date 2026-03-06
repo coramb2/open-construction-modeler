@@ -9,6 +9,7 @@ interface ConstructionObject {
     entity_type: string | null
     position: [number, number, number] | null
     dimensions: [number, number, number] | null
+    rotation: [number, number, number] | null
 }
 
 interface ViewportProps {
@@ -188,14 +189,24 @@ export default function Viewport({ objects, selectedId, onSelect }: ViewportProp
             const mat = new THREE.MeshLambertMaterial({ color })
             const mesh = new THREE.Mesh(geo, mat)
 
-            if (obj.position && (obj.position[0] !== 0 || obj.position[1] !== 0)) {
-                const h = obj.dimensions ? obj.dimensions[2] : 1.0
-                mesh.position.set(obj.position[0], h / 2, -obj.position[1])
-            } else {
-                const cols = 6
-                const x = (i % cols) * 2.5 - (cols * 1.25)
-                const z = Math.floor(i / cols) * 2.5 - 4
-                mesh.position.set(x, 0, z)
+            if (obj.position && (obj.position[0] !== 0 || obj.position[1] !== 0 || obj.position[2] !== 0)) {
+                // IFC is Z-up, Three.js is Y-up
+                // IFC X → Three.js X
+                // IFC Y → Three.js -Z  
+                // IFC Z → Three.js Y (height)
+                mesh.position.set(
+                    obj.position[0],
+                    obj.position[2],   // IFC Z becomes Three.js Y (height)
+                    -obj.position[1]   // IFC Y becomes Three.js -Z (depth)
+                )
+                if (obj.rotation) {
+                    mesh.rotation.set(obj.rotation[0], obj.rotation[1], obj.rotation[2])
+                } 
+
+             // const cols = 6
+             // const x = (i % cols) * 2.5 - (cols * 1.25)
+            //  const z = Math.floor(i / cols) * 2.5 - 4
+             // mesh.position.set(x, 0, z)
             }
 
             mesh.userData.id = obj.id

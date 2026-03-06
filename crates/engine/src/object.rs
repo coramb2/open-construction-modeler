@@ -20,6 +20,7 @@ pub struct ConstructionObject {
 
     pub position: Option<[f64; 3]>,
     pub dimensions: Option<[f64; 3]>,
+    pub rotation: Option<[f64; 3]>,  // Euler angles XYZ in radians
 }
 
 impl ConstructionObject {
@@ -40,6 +41,7 @@ impl ConstructionObject {
             relations: Relations::new(),
             position: None,
             dimensions: None,
+            rotation: None,
         }
     }
 }

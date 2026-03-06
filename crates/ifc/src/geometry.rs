@@ -216,6 +216,16 @@ impl Mat4 {
             self.data[2][0] * x + self.data[2][1] * y + self.data[2][2] * z + self.data[2][3],
         ]
     }
+
+    // extract euler angles (in radians) from the rotation part of the matrix
+    pub fn to_euler_xyz(&self) -> [f64; 3] {
+        let m = &self.data;
+        let y = (-m[2][0]).asin();
+        let x = m[2][1].atan2(m[2][2]);
+        let z = m[1][0].atan2(m[0][0]);
+        [x, y, z]
+    }
+
 }
 
 // parse xyz from IFCCARTESIANPOINT
