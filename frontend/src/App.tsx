@@ -12,6 +12,7 @@ interface ConstructionObject {
   phase: string
   status: string
   approval_status: string
+  entity_type: string | null
   position: [number, number, number] | null
   dimensions: [number, number, number] | null
 }

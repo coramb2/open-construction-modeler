@@ -6,6 +6,7 @@ interface ConstructionObject {
     id: string
     name: string
     trade: string
+    entity_type: string | null
     position: [number, number, number] | null
     dimensions: [number, number, number] | null
 }
@@ -32,8 +33,8 @@ export default function Viewport({ objects, selectedId, onSelect }: ViewportProp
     useEffect(() => {
         if (!mountRef.current) return
         const mount = mountRef.current
-        const w = mount.clientWidth
-        const h = mount.clientHeight
+        const w = mount.clientWidth || window.innerWidth - 288
+        const h = mount.clientHeight || window.innerHeight
 
         // Scene setup
         const scene = new THREE.Scene()
@@ -84,7 +85,7 @@ export default function Viewport({ objects, selectedId, onSelect }: ViewportProp
         scene.add(dir)
 
         // Grid
-        scene.add(new THREE.GridHelper(40, 20, 0x333333, 0x222222))
+        scene.add(new THREE.GridHelper(200, 40, 0x333333, 0x222222))
 
         // Animation loop
         let animId: number
@@ -95,19 +96,23 @@ export default function Viewport({ objects, selectedId, onSelect }: ViewportProp
         }
         animate()
 
-        // Handle window resize
+        // Observe window size changes
         const handleResize = () => {
-            const w = mount.clientWidth
-            const h = mount.clientHeight
-            camera.aspect = w / h
-            camera.updateProjectionMatrix()
-            renderer.setSize(w, h)
-        }
-        window.addEventListener('resize', handleResize)
+        const w = mount.clientWidth
+        const h = mount.clientHeight
+        if (w === 0 || h === 0) return
+        camera.aspect = w / h
+        camera.updateProjectionMatrix()
+        renderer.setSize(w, h)
+    }
+    const resizeObserver = new ResizeObserver(handleResize)
+    resizeObserver.observe(mount)
+    window.addEventListener('resize', handleResize)
 
         // Cleanup on unmount
         return () => {
             cancelAnimationFrame(animId)
+            resizeObserver.disconnect()
             window.removeEventListener('resize', handleResize)
             mount.removeChild(renderer.domElement)
             renderer.dispose()
@@ -126,25 +131,71 @@ export default function Viewport({ objects, selectedId, onSelect }: ViewportProp
         })
         meshMapRef.current = {}
 
-        // Each object as colored box with real dimensions if available
+        // Updating for shape-awareness: use entity_type to determine geometry type
+        // In-progress
         objects.forEach((obj, i) => {
             const color = TRADE_COLORS[obj.trade] ?? 0x888888
+            const entity = obj.entity_type ?? ''
 
-            const w = obj.dimensions ? obj.dimensions[0] : 1.5
-            const d = obj.dimensions ? obj.dimensions[2] : 1.5
-            const h = obj.dimensions ? obj.dimensions[1] : 1.0
+            // based on IFC entity type
+            let geo: THREE.BufferGeometry
 
-            const geo = new THREE.BoxGeometry(w, h, d)
+            if (entity.includes('WALL')) {
+                // walls: thin, tall, wide
+                const w = obj.dimensions ? obj.dimensions[0] : 4.0
+                const h = obj.dimensions ? obj.dimensions[2] : 2.5
+                geo = new THREE.BoxGeometry(w, h, 0.3)
+            } else if (entity.includes('SLAB') || entity.includes('FLOOR') || entity.includes('PLATE')) {
+                // slabs: wide, flat
+                const w = obj.dimensions ? obj.dimensions[0] : 4.0
+                const d = obj.dimensions ? obj.dimensions[1] : 4.0
+                geo = new THREE.BoxGeometry(w, 0.2, d)
+            } else if (entity.includes('CLOLUMN')) {
+                // columns: narrow, tall
+                const h = obj.dimensions ? obj.dimensions[2] : 3.0
+                geo = new THREE.CylinderGeometry(0.3, 0.3, h, 16)
+            } else if (entity.includes('BEAM')) {
+                // beams: long, horizontal, narrow cross-section
+                const l = obj.dimensions ? obj.dimensions[0] : 4.0
+                geo = new THREE.BoxGeometry(l, 0.4, 0.3)
+            } else if (entity.includes('DOOR')) {
+                // doors: thin panel
+                geo = new THREE.BoxGeometry(1.0, 2.0, 0.1)
+            } else if (entity.includes('WINDOW')) {
+                // windows: flat thin panel
+                geo = new THREE.BoxGeometry(1.5, 1.5, 0.1)
+            } else if (entity.includes('ROOF')) {
+                // roofs: wide, sloped
+                const w = obj.dimensions ? obj.dimensions[0] : 4.0
+                const d = obj.dimensions ? obj.dimensions[1] : 4.0
+                geo = new THREE.BoxGeometry(w, 0.2, d)
+            } else if (entity.includes('STAIR')) {
+                // stairs: wide stepped approximation
+                geo = new THREE.BoxGeometry(3.0, 1.5, 4.0)
+            } else if (entity.includes('PIPE')) {
+                // pipes: long cylinders
+                const l = obj.dimensions ? obj.dimensions[0] : 4.0
+                geo = new THREE.CylinderGeometry(0.05,0.05,l, 12)
+            } else if (entity.includes('DUCT')) {
+                // ducts: long rectangular prisms
+                const l = obj.dimensions ? obj.dimensions[0] : 3.0
+                geo = new THREE.BoxGeometry(l, 0.3, 0.4)
+            } else {
+                // default box
+                geo = new THREE.BoxGeometry(1.0, 2.0, 1.0)
+            }
+
             const mat = new THREE.MeshLambertMaterial({ color })
             const mesh = new THREE.Mesh(geo, mat)
 
             if (obj.position && (obj.position[0] !== 0 || obj.position[1] !== 0)) {
+                const h = obj.dimensions ? obj.dimensions[2] : 1.0
                 mesh.position.set(obj.position[0], h / 2, -obj.position[1])
             } else {
                 const cols = 6
                 const x = (i % cols) * 2.5 - (cols * 1.25)
                 const z = Math.floor(i / cols) * 2.5 - 4
-                mesh.position.set(x, h / 2, z)
+                mesh.position.set(x, 0, z)
             }
 
             mesh.userData.id = obj.id
