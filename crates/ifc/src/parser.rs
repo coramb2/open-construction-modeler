@@ -2,7 +2,7 @@ use anyhow::Result;
 use engine::metadata::{LodLevel, Trade};
 use engine::object::ConstructionObject;
 use std::fs;
-use crate::geometry::{IfcIndex, extract_geometry, get_entity_type};
+use crate::geometry::{IfcIndex, extract_geometry, get_entity_type, resolve_world_matrix};
 
 fn detect_trade(line: &str) -> Option<Trade> {
     if line.contains("IFCWALL") || line.contains("IFCSLAB") ||
@@ -25,6 +25,17 @@ fn is_noise_object(name: &str) -> bool {
     name.contains("Radial ") ||
     name.contains("\\X2\\") ||
     name.is_empty()
+}
+
+fn get_ref_arg(line: &str, index: usize) -> Option<String> {
+    let parts: Vec<&str> = line.split(',').collect();
+    if index < parts.len() {
+        let part = parts[index].trim();
+        if part.starts_with('#') {
+            return Some(part.to_string());
+        }
+    }
+    None
 }
 
 pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
@@ -53,9 +64,21 @@ pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
             continue;
         }
 
-        // Extract entity type and geometry — both inside the loop
+        // Extract entity type
         let entity_type = get_entity_type(line).map(|s| s.to_string());
+
+        // Extract geometry with world matrix
         let geo = extract_geometry(&index, line);
+
+        // Resolve world position via full parent chain
+        let world_pos = get_ref_arg(line, 5)
+            .and_then(|placement_id| {
+                let id = placement_id.trim_start_matches('#').parse::<u32>().ok()?;
+                let mat = resolve_world_matrix(&index, id);
+                let local = [geo.placement.x, geo.placement.y, geo.placement.z];
+                Some(mat.transform_point(local[0], local[1], local[2]))
+            })
+            .unwrap_or([geo.placement.x, geo.placement.y, geo.placement.z]);
 
         let mut obj = ConstructionObject::new(
             name.to_string(),
@@ -66,7 +89,7 @@ pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
             String::new(),
         );
 
-        obj.position = Some([geo.placement.x, geo.placement.y, geo.placement.z]);
+        obj.position = Some(world_pos);
         obj.dimensions = Some([geo.width, geo.depth, geo.height]);
 
         objects.push(obj);

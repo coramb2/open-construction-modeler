@@ -150,7 +150,7 @@ export default function Viewport({ objects, selectedId, onSelect }: ViewportProp
                 const w = obj.dimensions ? obj.dimensions[0] : 4.0
                 const d = obj.dimensions ? obj.dimensions[1] : 4.0
                 geo = new THREE.BoxGeometry(w, 0.2, d)
-            } else if (entity.includes('CLOLUMN')) {
+            } else if (entity.includes('COLUMN')) {
                 // columns: narrow, tall
                 const h = obj.dimensions ? obj.dimensions[2] : 3.0
                 geo = new THREE.CylinderGeometry(0.3, 0.3, h, 16)

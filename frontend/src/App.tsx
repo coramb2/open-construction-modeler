@@ -115,6 +115,11 @@ function App() {
             visibleObjects.map(obj => (
               <div
                 key={obj.id}
+                ref={el => {
+                  if (el && selectedId === obj.id) {
+                    el.scrollIntoView({block: 'nearest', behavior: 'smooth' })
+                  }
+                }}
                 onClick={() => setSelectedId(obj.id)}
                 className={`p-2 rounded cursor-pointer mb-1 text-xs ${
                   selectedId === obj.id
