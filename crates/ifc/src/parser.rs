@@ -2,17 +2,45 @@ use anyhow::Result;
 use engine::metadata::{LodLevel, Trade};
 use engine::object::ConstructionObject;
 use std::fs;
-use crate::geometry::{IfcIndex, extract_geometry, get_entity_type, get_ref_arg, resolve_world_matrix};
+use crate::geometry::{IfcIndex, extract_geometry, get_entity_type, get_ref_arg, resolve_world_matrix, detect_length_unit};
 
 fn detect_trade(line: &str) -> Option<Trade> {
+    // Structural
     if line.contains("IFCWALL") || line.contains("IFCSLAB") ||
-       line.contains("IFCBEAM") || line.contains("IFCCOLUMN") {
+       line.contains("IFCBEAM") || line.contains("IFCCOLUMN") ||
+       line.contains("IFCFOOTING") || line.contains("IFCPILE") ||
+       line.contains("IFCPLATE") || line.contains("IFCMEMBER") {
         Some(Trade::Structural)
+    // Architectural
     } else if line.contains("IFCDOOR") || line.contains("IFCWINDOW") ||
-              line.contains("IFCSTAIR") {
+              line.contains("IFCSTAIR") || line.contains("IFCROOF") ||
+              line.contains("IFCCURTAINWALL") || line.contains("IFCRAMP") ||
+              line.contains("IFCSPACE") || line.contains("IFCFURNISHING") {
         Some(Trade::Architectural)
-    } else if line.contains("IFCDUCT") || line.contains("IFCPIPE") {
+    // Mechanical / HVAC
+    } else if line.contains("IFCDUCT") || line.contains("IFCPIPE") ||
+              line.contains("IFCFLOW") || line.contains("IFCAIR") ||
+              line.contains("IFCCHILLER") || line.contains("IFCBOILER") ||
+              line.contains("IFCUNITARYEQUIP") || line.contains("IFCFAN") ||
+              line.contains("IFCPUMP") || line.contains("IFCHVAC") {
         Some(Trade::Mechanical)
+    // Electrical
+    } else if line.contains("IFCELECTRIC") || line.contains("IFCLIGHTING") ||
+              line.contains("IFCCABLE") || line.contains("IFCSWITCH") ||
+              line.contains("IFCOUTLET") || line.contains("IFCTRANSFORMER") {
+        Some(Trade::Electrical)
+    // Civil / Infrastructure
+    } else if line.contains("IFCBRIDGE") || line.contains("IFCROAD") ||
+              line.contains("IFCRAIL") || line.contains("IFCTUNNEL") ||
+              line.contains("IFCEARTHWORKS") || line.contains("IFCCOURSE") ||
+              line.contains("IFCPAVEMENT") || line.contains("IFCSURFACEFEATURE") ||
+              line.contains("IFCKERB") || line.contains("IFCTRACKELEM") {
+        Some(Trade::Civil)
+    // Plumbing
+    } else if line.contains("IFCSANITARY") || line.contains("IFCWASTE") ||
+              line.contains("IFCFIRESUPP") || line.contains("IFCVALVE") ||
+              line.contains("IFCTANK") || line.contains("IFCINTERCEPTOR") {
+        Some(Trade::Plumbing)
     } else {
         None
     }
@@ -30,6 +58,7 @@ fn is_noise_object(name: &str) -> bool {
 pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
     let contents = fs::read_to_string(path)?;
     let index = IfcIndex::from_file(path)?;
+    let unit_scale = detect_length_unit(&index);
     let mut objects = Vec::new();
 
     for line in contents.lines() {
@@ -75,12 +104,20 @@ pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
         );
 
         obj.position = Some(world_result
-            .map(|(p, _)| p)
-            .unwrap_or([geo.placement.x, geo.placement.y, geo.placement.z]));
+            .map(|(p, _)| [p[0] * unit_scale, p[1] * unit_scale, p[2] * unit_scale])
+            .unwrap_or([
+                geo.placement.x * unit_scale,
+                geo.placement.y * unit_scale,
+                geo.placement.z * unit_scale,
+            ]));
+        obj.dimensions = Some([
+            geo.width * unit_scale,
+            geo.depth * unit_scale,
+            geo.height * unit_scale,
+        ]);
         obj.rotation = Some(world_result
             .map(|(_, r)| r)
             .unwrap_or([0.0, 0.0, 0.0]));
-        obj.dimensions = Some([geo.width, geo.depth, geo.height]);
 
         objects.push(obj);
     }

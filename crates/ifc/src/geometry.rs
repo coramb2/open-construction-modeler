@@ -34,6 +34,28 @@ impl IfcIndex {
     }
 }
 
+/// Detects the length unit scale factor from IFC file
+/// Returns multiplier to convert to meters
+/// MILLI.METRE → 0.001, METRE → 1.0, etc.
+pub fn detect_length_unit(index: &IfcIndex) -> f64 {
+    for line in index.lines.values() {
+        if line.contains("IFCSIUNIT") && line.contains("LENGTHUNIT") {
+            if line.contains(".MILLI.") {
+                return 0.001;
+            } else if line.contains(".CENTI.") {
+                return 0.01;
+            } else if line.contains(".METRE.") {
+                return 1.0;
+            } else if line.contains(".INCH.") {
+                return 0.0254;
+            } else if line.contains(".FOOT.") {
+                return 0.3048;
+            }
+        }
+    }
+    1.0 // default to meters
+}
+
 // Extracts the entity type from a line like "#15042= IFCSLAB(...);"
 pub fn get_entity_type(line: &str) -> Option<&str> {
     let after_eq = line.find('=').map(|i| line[i + 1..].trim())?;
@@ -148,32 +170,37 @@ pub fn extract_geometry(index: &IfcIndex, entity_line: &str) -> GeometryData {
         .and_then(|id| resolve_placement(index, id))
         .unwrap_or(ObjectPlacement { x: 0.0, y: 0.0, z: 0.0 });
 
-    // try to get geometry set ref from arg 6
-    let height = get_ref_arg(entity_line, 6)
-    .and_then(|shape_id| {
+    // try extrusion first then triangulated faceset bounds
+    let dims = get_ref_arg(entity_line, 6).and_then(|shape_id| {
         let shape_line = index.get(shape_id)?;
         let start = shape_line.find('(')?;
         let end = shape_line.rfind(')')?;
-        let args_str = &shape_line[start+1..end];
+        let args_str = &shape_line[start + 1..end];
+
         for part in args_str.split(',') {
             let part = part.trim();
             if part.starts_with('#') {
                 if let Ok(id) = part[1..].parse::<u32>() {
+                    // try extrusion depth
                     if let Some(depth) = resolve_extrusion_depth(index, id) {
-                        return Some(depth);
+                        return Some([1.5, 0.3, depth]);
+                    }
+                    // try triangulated faceset bounds
+                    if let Some(bounds) = resolve_triangulated_faceset(index, id) {
+                        return Some(bounds);
                     }
                 }
             }
         }
         None
     })
-    .unwrap_or(1.0); // default height
+    .unwrap_or([1.5, 1.5, 1.0]);
 
     GeometryData {
         placement,
-        width: 1.5, // default width
-        depth: 0.3, // default depth
-        height,
+        width: dims[0], 
+        depth: dims[1], 
+        height: dims[2],
     }
 }
 
@@ -337,6 +364,82 @@ pub fn resolve_world_matrix(index: &IfcIndex, placement_id: u32) -> Mat4 {
     matrices.into_iter().fold(Mat4::identity(), |acc, m| acc.multiply(&m))
 }
 
+// Extract bounding box from IFCTRIANGULATEDFACESET
+pub fn resolve_triangulated_faceset(index: &IfcIndex, faceset_id: u32) -> Option<[f64; 3]> {
+    let faceset_line = index.get(faceset_id)?;
+    if !faceset_line.contains("IFCTRIANGULATEDFACESET") {
+        return None;
+    }
+
+    // arg 0 is IFCCARTESIANPOINTLIST3D reference
+    let pointlist_id = get_ref_arg(faceset_line, 0)?;
+    let pointlist_line = index.get(pointlist_id)?;
+    if !pointlist_line.contains("IFCCARTESIANPOINTLIST") {
+        return None;
+    }
+
+    // Extract all coordinates
+    let start = pointlist_line.find("((")?;
+    let end = pointlist_line.rfind("))")?;
+    let coords_str = &pointlist_line[start + 2..end];
+
+    let mut min = [f64::MAX; 3];
+    let mut max = [f64::MIN; 3];
+    let mut found_any = false;
+
+    // parse each point tuple
+    let mut depth = 0i32;
+    let mut current = String::new();
+    let mut coords_in_tuple: Vec<f64> = Vec::new();
+
+    for ch in coords_str.chars() {
+        match ch {
+            '(' => {
+                depth += 1;
+                current.clear();
+                coords_in_tuple.clear();
+            }
+            ')' => {
+                if !current.trim().is_empty() {
+                    if let Ok(val) = current.trim().parse::<f64>() {
+                        coords_in_tuple.push(val);
+                    }
+                }
+                if depth == 1 && coords_in_tuple.len() >= 3 {
+                    for i in 0..3 {
+                        min[i] = min[i].min(coords_in_tuple[i]);
+                        max[i] = max[i].max(coords_in_tuple[i]);
+                    }
+                    found_any = true;
+                }
+                depth -= 1;
+                current.clear();
+                coords_in_tuple.clear();
+            }
+            ',' => {
+                if depth == 1 {
+                    if let Ok(val) = current.trim().parse::<f64>() {
+                        coords_in_tuple.push(val);
+                    }
+                    current.clear();
+                }
+            }
+            _ => current.push(ch),
+        }
+    }
+
+    if !found_any {
+        return None; // No valid points found
+    }
+
+    Some([
+        (max[0] - min[0]).abs(),
+        (max[1] - min[1]).abs(),
+        (max[2] - min[2]).abs(),
+    ])
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -431,6 +534,41 @@ mod tests {
         let p = mat.transform_point(0.0, 0.0, 0.0);
         assert!((p[0] - 5.0).abs() < 0.001);
         assert!((p[1] - 3.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_detect_length_unit_millimeter() {
+        let path = "/tmp/ocm_units_test.ifc";
+        let content = "#15=IFCSIUNIT(*,.LENGTHUNIT.,.MILLI.,.METRE.);\n";
+        fs::write(path, content).unwrap();
+        let index = IfcIndex::from_file(path).unwrap();
+        let scale = detect_length_unit(&index);
+        assert!((scale - 0.001).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_detect_length_unit_meter() {
+        let path = "/tmp/ocm_units_test2.ifc";
+        let content = "#13=IFCSIUNIT(*,.LENGTHUNIT.,$,.METRE.);\n";
+        fs::write(path, content).unwrap();
+        let index = IfcIndex::from_file(path).unwrap();
+        let scale = detect_length_unit(&index);
+        assert!((scale - 1.0).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_resolve_triangulated_faceset_bounds() {
+        let path = "/tmp/ocm_faceset_test.ifc";
+        let content = "\
+    #10=IFCCARTESIANPOINTLIST3D(((0.,0.,0.),(4.,0.,0.),(4.,3.,0.),(0.,3.,0.),(0.,0.,2.5),(4.,0.,2.5),(4.,3.,2.5),(0.,3.,2.5)));\n\
+    #11=IFCTRIANGULATEDFACESET(#10,$,((1,2,3),(1,3,4),(5,6,7),(5,7,8)),$);\n";
+        fs::write(path, content).unwrap();
+        let index = IfcIndex::from_file(path).unwrap();
+        let bounds = resolve_triangulated_faceset(&index, 11).unwrap();
+        // width=4, depth=3, height=2.5
+        assert!((bounds[0] - 4.0).abs() < 0.01, "width should be 4, got {}", bounds[0]);
+        assert!((bounds[1] - 3.0).abs() < 0.01, "depth should be 3, got {}", bounds[1]);
+        assert!((bounds[2] - 2.5).abs() < 0.01, "height should be 2.5, got {}", bounds[2]);
     }
 
 }
