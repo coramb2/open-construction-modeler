@@ -88,8 +88,8 @@ pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
         let world_result = get_ref_arg(line, 5)
             .and_then(|id| {
                 let mat = resolve_world_matrix(&index, id);
-                let local = [geo.placement.x, geo.placement.y, geo.placement.z];
-                let pos = mat.transform_point(local[0], local[1], local[2]);
+                //let local = [geo.placement.x, geo.placement.y, geo.placement.z];
+                let pos = mat.transform_point(0.0, 0.0, 0.0);
                 let rot = mat.to_euler_xyz();
                 Some((pos, rot))
             });
@@ -103,21 +103,32 @@ pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
             String::new(),
         );
 
-        obj.position = Some(world_result
-            .map(|(p, _)| [p[0] * unit_scale, p[1] * unit_scale, p[2] * unit_scale])
-            .unwrap_or([
-                geo.placement.x * unit_scale,
-                geo.placement.y * unit_scale,
-                geo.placement.z * unit_scale,
-            ]));
-        obj.dimensions = Some([
-            geo.width * unit_scale,
-            geo.depth * unit_scale,
-            geo.height * unit_scale,
-        ]);
+        obj.position = Some(if geo.resolved {
+            world_result
+                .map(|(p, _)| [p[0] * unit_scale, p[1] * unit_scale, p[2] * unit_scale])
+                .unwrap_or([
+                    geo.placement.x * unit_scale,
+                    geo.placement.y * unit_scale,
+                    geo.placement.z * unit_scale,
+                ])
+        } else {
+            world_result
+                .map(|(p, _)| p)
+                .unwrap_or([geo.placement.x, geo.placement.y, geo.placement.z])
+        });
+
+        obj.dimensions = Some(if geo.resolved {
+            [geo.width * unit_scale, geo.depth * unit_scale, geo.height * unit_scale]
+        } else {
+            [geo.width, geo.depth, geo.height]
+        });
+        
         obj.rotation = Some(world_result
             .map(|(_, r)| r)
             .unwrap_or([0.0, 0.0, 0.0]));
+
+        // DEBUG - remove after diagnosis
+        //eprintln!("{}: pos={:?} dims={:?}", name, obj.position, obj.dimensions);
 
         objects.push(obj);
     }

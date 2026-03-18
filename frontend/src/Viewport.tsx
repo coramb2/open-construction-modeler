@@ -143,9 +143,10 @@ export default function Viewport({ objects, selectedId, onSelect }: ViewportProp
 
             if (entity.includes('WALL')) {
                 // walls: thin, tall, wide
-                const w = obj.dimensions ? obj.dimensions[0] : 4.0
-                const h = obj.dimensions ? obj.dimensions[2] : 2.5
-                geo = new THREE.BoxGeometry(w, h, 0.3)
+                const w = obj.dimensions?.[0] ?? 4.0
+                const h = obj.dimensions?.[2] ?? 2.5
+                const d = obj.dimensions?.[1] ?? 0.3
+                geo = new THREE.BoxGeometry(w, h, d)
             } else if (entity.includes('SLAB') || entity.includes('FLOOR') || entity.includes('PLATE')) {
                 // slabs: wide, flat
                 const w = obj.dimensions ? obj.dimensions[0] : 4.0
@@ -200,8 +201,12 @@ export default function Viewport({ objects, selectedId, onSelect }: ViewportProp
                     -obj.position[1]   // IFC Y becomes Three.js -Z (depth)
                 )
                 if (obj.rotation) {
-                    mesh.rotation.set(obj.rotation[0], obj.rotation[1], obj.rotation[2])
-                } 
+                    mesh.rotation.set(
+                        obj.rotation[0],   // IFC X-rot → Three.js X-rot
+                        obj.rotation[2],   // IFC Z-rot → Three.js Y-rot
+                        -obj.rotation[1]   // IFC Y-rot → Three.js -Z-rot
+                    )
+                }
 
              // const cols = 6
              // const x = (i % cols) * 2.5 - (cols * 1.25)

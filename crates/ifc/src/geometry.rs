@@ -69,7 +69,7 @@ pub fn get_ref_arg(line: &str, arg_index: usize) -> Option<u32> {
     let end = line.rfind(')')?;
     let args_str = &line[start + 1..end];
 
-    let args: Vec<&str> = args_str.split(',').collect();
+    let args = split_args(args_str);
     let arg = args.get(arg_index)?.trim();
 
     if arg.starts_with('#') {
@@ -85,9 +85,77 @@ pub fn get_float_arg(line: &str, arg_index: usize) -> Option<f64> {
     let end = line.rfind(')')?;
     let args_str = &line[start + 1..end];
 
-    let args: Vec<&str> = args_str.split(',').collect();
+    let args = split_args(args_str);
     let arg = args.get(arg_index)?.trim();
     arg.parse::<f64>().ok()
+}
+
+fn split_args(s: &str) -> Vec<&str> {
+    let mut result = Vec::new();
+    let mut current_start = 0;
+    let mut depth = 0;
+    let mut in_quote = false;
+
+    for (i, ch) in s.char_indices() {
+        match ch {
+            '\'' if depth == 0 => in_quote = !in_quote,
+            '(' if !in_quote => depth += 1,
+            ')' if !in_quote => depth -= 1,
+            ',' if depth == 0 && !in_quote => {
+                result.push(&s[current_start..i]);
+                current_start = i + 1;
+            }
+            _ => {}
+        }
+    }
+
+    if current_start < s.len() {
+        result.push(&s[current_start..]);
+    }
+
+    result
+}
+
+// Extracts a list of #references from a specific argument position
+pub fn get_list_arg(line: &str, arg_index: usize) -> Vec<u32> {
+    let start = match line.find('(') {
+        Some(pos) => pos,
+        None => return vec![],
+    };
+    let end = match line.rfind(')') {
+        Some(pos) => pos,
+        None => return vec![],
+    };
+    let args_str = &line[start + 1..end];
+
+    let args = split_args(args_str);
+    let arg = match args.get(arg_index) {
+        Some(a) => a.trim(),
+        None => return vec![],
+    };
+
+    // arg should be something like "(#123, #456, #789)"
+    let list_start = match arg.find('(') {
+        Some(pos) => pos,
+        None => return vec![],
+    };
+    let list_end = match arg.rfind(')') {
+        Some(pos) => pos,
+        None => return vec![],
+    };
+    let list_str = &arg[list_start + 1..list_end];
+
+    split_args(list_str)
+        .iter()
+        .filter_map(|item| {
+            let trimmed = item.trim();
+            if trimmed.starts_with('#') {
+                trimmed[1..].parse::<u32>().ok()
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
 #[derive(Debug, Clone)]
@@ -122,7 +190,7 @@ pub fn resolve_placement(index: &IfcIndex, placement_id: u32) -> Option<ObjectPl
 
     let start = point_line.find('(')?;
     let end = point_line.rfind(')')?;
-    let coords_str = &point_line[start + 2..end];
+    let coords_str = &point_line[start + 2..end - 1];
     let coords: Vec<f64> = coords_str.split(',').filter_map(|s| s.trim().parse::<f64>().ok()).collect();
 
     if coords.len() == 3 {
@@ -140,6 +208,7 @@ pub struct GeometryData {
     pub width: f64,
     pub height: f64,
     pub depth: f64,
+    pub resolved: bool,
 }
 
 impl GeometryData {
@@ -149,6 +218,7 @@ impl GeometryData {
             width: 1.5,
             depth: 1.5,
             height: 1.0,
+            resolved: false,
         }
     }
 }
@@ -165,42 +235,43 @@ pub fn resolve_extrusion_depth(index: &IfcIndex, solid_id: u32) -> Option<f64> {
 
 // Main entry point - given a wall/slab entity line, resolve its geometry data
 pub fn extract_geometry(index: &IfcIndex, entity_line: &str) -> GeometryData {
-    // try to get placement from arg 5
+    //eprintln!("  entity arg6 raw: {:?}", get_ref_arg(entity_line, 6));
     let placement = get_ref_arg(entity_line, 5)
         .and_then(|id| resolve_placement(index, id))
         .unwrap_or(ObjectPlacement { x: 0.0, y: 0.0, z: 0.0 });
-
-    // try extrusion first then triangulated faceset bounds
-    let dims = get_ref_arg(entity_line, 6).and_then(|shape_id| {
-        let shape_line = index.get(shape_id)?;
-        let start = shape_line.find('(')?;
-        let end = shape_line.rfind(')')?;
-        let args_str = &shape_line[start + 1..end];
-
-        for part in args_str.split(',') {
-            let part = part.trim();
-            if part.starts_with('#') {
-                if let Ok(id) = part[1..].parse::<u32>() {
-                    // try extrusion depth
-                    if let Some(depth) = resolve_extrusion_depth(index, id) {
-                        return Some([1.5, 0.3, depth]);
-                    }
-                    // try triangulated faceset bounds
-                    if let Some(bounds) = resolve_triangulated_faceset(index, id) {
-                        return Some(bounds);
+    //eprintln!("  entity arg6 raw: {:?}", get_ref_arg(entity_line, 6));
+    let dims = get_ref_arg(entity_line, 6)
+        .and_then(|prod_def_id| {
+            //eprintln!("  prod_def_id: {}", prod_def_id);
+            let prod_def_line = index.get(prod_def_id)?;
+            for repr_id in get_list_arg(prod_def_line, 2) {
+                //eprintln!("  repr_id: {}", repr_id);
+                if let Some(repr_line) = index.get(repr_id) {
+                    for geom_id in get_list_arg(repr_line, 3) {
+                        //eprintln!("  geom_id: {}", geom_id);
+                        if let Some(depth) = resolve_extrusion_depth(index, geom_id) {
+                            //eprintln!("  -> extrusion depth: {}", depth);
+                            return Some([1.5, 0.3, depth]);
+                        }
+                        if let Some(bounds) = resolve_triangulated_faceset(index, geom_id) {
+                            //eprintln!("  -> faceset bounds: {:?}", bounds);
+                            return Some(bounds);
+                        }
+                        eprintln!("  -> neither matched");
                     }
                 }
             }
-        }
-        None
-    })
-    .unwrap_or([1.5, 1.5, 1.0]);
+            None
+        })
+        .map(|d| (d, true))
+        .unwrap_or(([1.5, 1.5, 1.0], false));
 
     GeometryData {
         placement,
-        width: dims[0], 
-        depth: dims[1], 
-        height: dims[2],
+        width: dims.0[0],
+        depth: dims.0[1],
+        height: dims.0[2],
+        resolved: dims.1,
     }
 }
 
@@ -256,10 +327,10 @@ impl Mat4 {
 }
 
 // parse xyz from IFCCARTESIANPOINT
-fn parse_cartesian_point(line: &str) -> Option<(f64, f64, f64)> {
-    let start = line.find('(')?;
-    let end = line.rfind(')')?;
-    let coords_str = &line[start + 2..end];
+fn parse_cartesian_point(point_line: &str) -> Option<(f64, f64, f64)> {
+    let start = point_line.find('(')?;
+    let end = point_line.rfind(')')?;
+    let coords_str = &point_line[start + 2..end - 1];
     let coords: Vec<f64> = coords_str.split(',').filter_map(|s| s.trim().parse::<f64>().ok()).collect();
     if coords.len() == 3 {
         Some((coords[0], coords[1], coords[2]))
@@ -480,9 +551,9 @@ mod tests {
     fn test_resolve_placement() {
         let path = "/tmp/ocm_placement_test.ifc";
         let content = "\
-        #100= IFCCARTESIANPOINT((3.,7.,0.));\n\
-        #101= IFCAXIS2PLACEMENT3D(#100,$,$);\n\
-        #102= IFCLOCALPLACEMENT($,#101);\n";
+            #100= IFCCARTESIANPOINT((3.,7.,0.));\n\
+            #101= IFCAXIS2PLACEMENT3D(#100,$,$);\n\
+            #102= IFCLOCALPLACEMENT($,#101);\n";
         fs::write(path, content).unwrap();
 
         let index = IfcIndex::from_file(path).unwrap();
@@ -523,11 +594,11 @@ mod tests {
     fn test_world_matrix_single_level() {
         let path = "/tmp/ocm_world_matrix_test.ifc";
         let content = "\
-#10= IFCCARTESIANPOINT((5.,3.,0.));\n\
-#11= IFCDIRECTION((1.,0.,0.));\n\
-#12= IFCDIRECTION((0.,0.,1.));\n\
-#13= IFCAXIS2PLACEMENT3D(#10,#12,#11);\n\
-#14= IFCLOCALPLACEMENT($,#13);\n";
+            #10= IFCCARTESIANPOINT((5.,3.,0.));\n\
+            #11= IFCDIRECTION((1.,0.,0.));\n\
+            #12= IFCDIRECTION((0.,0.,1.));\n\
+            #13= IFCAXIS2PLACEMENT3D(#10,#12,#11);\n\
+            #14= IFCLOCALPLACEMENT($,#13);\n";
         std::fs::write(path, content).unwrap();
         let index = IfcIndex::from_file(path).unwrap();
         let mat = resolve_world_matrix(&index, 14);
@@ -560,8 +631,8 @@ mod tests {
     fn test_resolve_triangulated_faceset_bounds() {
         let path = "/tmp/ocm_faceset_test.ifc";
         let content = "\
-    #10=IFCCARTESIANPOINTLIST3D(((0.,0.,0.),(4.,0.,0.),(4.,3.,0.),(0.,3.,0.),(0.,0.,2.5),(4.,0.,2.5),(4.,3.,2.5),(0.,3.,2.5)));\n\
-    #11=IFCTRIANGULATEDFACESET(#10,$,((1,2,3),(1,3,4),(5,6,7),(5,7,8)),$);\n";
+            #10=IFCCARTESIANPOINTLIST3D(((0.,0.,0.),(4.,0.,0.),(4.,3.,0.),(0.,3.,0.),(0.,0.,2.5),(4.,0.,2.5),(4.,3.,2.5),(0.,3.,2.5)));\n\
+            #11=IFCTRIANGULATEDFACESET(#10,$,((1,2,3),(1,3,4),(5,6,7),(5,7,8)),$);\n";
         fs::write(path, content).unwrap();
         let index = IfcIndex::from_file(path).unwrap();
         let bounds = resolve_triangulated_faceset(&index, 11).unwrap();
@@ -569,6 +640,28 @@ mod tests {
         assert!((bounds[0] - 4.0).abs() < 0.01, "width should be 4, got {}", bounds[0]);
         assert!((bounds[1] - 3.0).abs() < 0.01, "depth should be 3, got {}", bounds[1]);
         assert!((bounds[2] - 2.5).abs() < 0.01, "height should be 2.5, got {}", bounds[2]);
+    }
+
+    #[test]
+    fn test_extract_geometry_two_hop() {
+        let path = "/tmp/ocm_extract_geometry_test.ifc";
+        let content = "\
+            #1= IFCCARTESIANPOINT((2.,4.,0.));\n\
+            #2= IFCAXIS2PLACEMENT3D(#1,$,$);\n\
+            #3= IFCLOCALPLACEMENT($,#2);\n\
+            #4= IFCEXTRUDEDAREASOLID(#99,#98,#97,3.5);\n\
+            #5= IFCSHAPEREPRESENTATION(#12,'Body','SweptSolid',(#4));\n\
+            #6= IFCPRODUCTDEFINITIONSHAPE($,$,(#5));\n\
+            #7= IFCWALLSTANDARDCASE('guid',#9,'Test Wall',$,$,#3,#6,$);\n";
+        std::fs::write(path, content).unwrap();
+
+        let index = IfcIndex::from_file(path).unwrap();
+        let wall_line = index.get(7).unwrap();
+        let geo = extract_geometry(&index, wall_line);
+
+        assert!((geo.height - 3.5).abs() < 0.01, "height should be 3.5, got {}", geo.height);
+        assert!((geo.placement.x - 2.0).abs() < 0.01, "x should be 2.0, got {}", geo.placement.x);
+        assert!((geo.placement.y - 4.0).abs() < 0.01, "y should be 4.0, got {}", geo.placement.y);
     }
 
 }
