@@ -1,5 +1,4 @@
 # Open Construction Modeler
-
 An open-source, construction-first modeling engine built for VDC coordinators, 
 trade contractors, and construction technology teams.
 
@@ -35,32 +34,49 @@ We're building for the people doing VDC coordination every day.
 
 ## Current Status
 
-Early development — core data model and project persistence complete.
+Active development — geometry pipeline working end-to-end on real IFC files.
 
 **Working:**
 - Construction object data model (trade, LOD, CSI code, phase, status)
 - Object relationships (dependencies, sequencing, hosting, assemblies)
 - Project save/load to `.ocm` format
 - Round-trip JSON serialization
+- IFC 4.x and 2x3 parser with entity indexing
+- Full geometry extraction pipeline:
+  - `IFCPRODUCTDEFINITIONSHAPE → IFCSHAPEREPRESENTATION → geometry` traversal
+  - `IFCEXTRUDEDAREASOLID` depth extraction
+  - `IFCTRIANGULATEDFACESET` bounding box extraction
+  - Unit scale detection (mm, cm, m, ft, in)
+  - World matrix computation via IFCLOCALPLACEMENT parent chain
+- Tauri 2.0 desktop app with Three.js WebGL viewport
+- Trade-color-coded 3D rendering with real IFC dimensions
+- Raycasting object selection (click in viewport → highlights in sidebar)
+- Bidirectional selection (sidebar ↔ viewport)
+- Native file open dialog (.ifc and .ocm)
+- Trade filter toggles
+- 15 passing unit tests
 
 **In Progress:**
-- IFC 4.3 import/export
-- Geometry engine (Open CASCADE via Rust FFI)
-- CLI interface
+- Y-axis world position (centroid extraction from faceset geometry)
+- Extrusion profile dimension extraction (width/depth from IFCARBITRARYCLOSEDPROFILEDEF)
+- Clash detection engine
 
 ---
 
 ## Architecture
 ```
-crates/
-├── engine/   — Core data model, relationships, project persistence
-├── ifc/      — IFC 4.3 parser and writer
-└── app/      — CLI application binary
+open-construction-modeler/
+├── crates/
+│   ├── engine/     — Core data model, relationships, project persistence
+│   ├── ifc/        — IFC parser, geometry extraction, world matrix
+│   └── app/        — CLI application binary
+├── frontend/       — React + TypeScript + Three.js viewport
+└── src-tauri/      — Tauri 2.0 desktop shell + Rust command bridge
 ```
 
-**Language:** Rust  
-**Geometry Kernel:** Open CASCADE (planned)  
-**Rendering:** wgpu / WebGPU (planned)  
+**Language:** Rust + TypeScript  
+**Desktop Shell:** Tauri 2.0  
+**Rendering:** Three.js (WebGL)  
 **Scripting:** Python via PyO3 (planned)  
 
 ---
@@ -70,39 +86,44 @@ crates/
 # Install Rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
+# Install Node.js (v18+) and Tauri CLI
+npm install -g @tauri-apps/cli
+
 # Clone and build
 git clone https://github.com/coramb2/open-construction-modeler.git
 cd open-construction-modeler
-cargo build
 
 # Run tests
 cargo test
 
-# Run the app
-cargo run
+# Run desktop app (dev mode)
+cargo tauri dev
 ```
 
 ---
 
 ## Roadmap
 
-- [ ] IFC 4.3 import/export
-- [ ] NWC and DWG import
-- [ ] Geometry engine integration
+- [x] Core data model and project persistence
+- [x] IFC 4.x/2x3 import
+- [x] Tauri desktop app with Three.js viewport
+- [x] IFC geometry extraction pipeline
+- [ ] Y-axis world position from faceset centroids
+- [ ] Extrusion profile dimension extraction
 - [ ] Clash detection engine
-- [ ] GPU viewport
+- [ ] BCF 2.1 issue export
+- [ ] Procore integration
+- [ ] DWG/DXF civil import
+- [ ] 4D schedule integration
 - [ ] Python scripting layer
-- [ ] One-click publish to collaboration platform
-- [ ] Standalone clash analysis mode
+- [ ] Web collaboration platform
 
 ---
 
 ## Contributing
 
-This project is in early stages. If you work in VDC, construction technology, 
+This project is in active development. If you work in VDC, construction technology, 
 or Rust systems programming — contributions and feedback are welcome.
-
-See `docs/research.md` for design decisions and user research.
 
 ---
 
