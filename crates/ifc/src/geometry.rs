@@ -203,12 +203,21 @@ pub fn resolve_placement(index: &IfcIndex, placement_id: u32) -> Option<ObjectPl
 }
 
 #[derive(Debug, Clone)]
+pub struct FacesetGeometry {
+    pub dims: [f64; 3],      // [width, depth, height] bounding box extents
+    pub centroid: [f64; 3],  // average position of all points in local geometry space
+    pub min: [f64; 3],       // bounding box min corner — used by clash detection later
+    pub max: [f64; 3],       // bounding box max corner
+}
+
+#[derive(Debug, Clone)]
 pub struct GeometryData {
     pub placement: ObjectPlacement,
     pub width: f64,
     pub height: f64,
     pub depth: f64,
     pub resolved: bool,
+    pub centroid: Option<[f64; 3]>,  // Some when faceset geometry was found, None for extrusions
 }
 
 impl GeometryData {
@@ -219,6 +228,7 @@ impl GeometryData {
             depth: 1.5,
             height: 1.0,
             resolved: false,
+            centroid: None,
         }
     }
 }
@@ -235,43 +245,44 @@ pub fn resolve_extrusion_depth(index: &IfcIndex, solid_id: u32) -> Option<f64> {
 
 // Main entry point - given a wall/slab entity line, resolve its geometry data
 pub fn extract_geometry(index: &IfcIndex, entity_line: &str) -> GeometryData {
-    //eprintln!("  entity arg6 raw: {:?}", get_ref_arg(entity_line, 6));
+    ////eprintln!("  entity arg6 raw: {:?}", get_ref_arg(entity_line, 6));
     let placement = get_ref_arg(entity_line, 5)
         .and_then(|id| resolve_placement(index, id))
         .unwrap_or(ObjectPlacement { x: 0.0, y: 0.0, z: 0.0 });
-    //eprintln!("  entity arg6 raw: {:?}", get_ref_arg(entity_line, 6));
+    ////eprintln!("  entity arg6 raw: {:?}", get_ref_arg(entity_line, 6));
     let dims = get_ref_arg(entity_line, 6)
         .and_then(|prod_def_id| {
-            //eprintln!("  prod_def_id: {}", prod_def_id);
+            ////eprintln!("  prod_def_id: {}", prod_def_id);
             let prod_def_line = index.get(prod_def_id)?;
             for repr_id in get_list_arg(prod_def_line, 2) {
-                //eprintln!("  repr_id: {}", repr_id);
+                ////eprintln!("  repr_id: {}", repr_id);
                 if let Some(repr_line) = index.get(repr_id) {
                     for geom_id in get_list_arg(repr_line, 3) {
-                        //eprintln!("  geom_id: {}", geom_id);
+                        ////eprintln!("  geom_id: {}", geom_id);
                         if let Some(depth) = resolve_extrusion_depth(index, geom_id) {
-                            //eprintln!("  -> extrusion depth: {}", depth);
-                            return Some([1.5, 0.3, depth]);
+                            ////eprintln!("  -> extrusion depth: {}", depth);
+                            return Some(([1.5, 0.3, depth], None));
                         }
-                        if let Some(bounds) = resolve_triangulated_faceset(index, geom_id) {
-                            //eprintln!("  -> faceset bounds: {:?}", bounds);
-                            return Some(bounds);
+                        if let Some(faceset) = resolve_triangulated_faceset(index, geom_id) {
+                            ////eprintln!("  -> faceset bounds: {:?}", faceset.dims);
+                            return Some((faceset.dims, Some(faceset.centroid)));                        
                         }
-                        eprintln!("  -> neither matched");
+                        //eprintln!("  -> neither matched");
                     }
                 }
             }
             None
         })
         .map(|d| (d, true))
-        .unwrap_or(([1.5, 1.5, 1.0], false));
+        .unwrap_or((([1.5, 1.5, 1.0], None), false));
 
     GeometryData {
         placement,
-        width: dims.0[0],
-        depth: dims.0[1],
-        height: dims.0[2],
+        width: dims.0.0[0],
+        depth: dims.0.0[1],
+        height: dims.0.0[2],
         resolved: dims.1,
+        centroid: dims.0.1,
     }
 }
 
@@ -349,7 +360,7 @@ fn parse_direction(index: &IfcIndex, direction_id: u32) -> Option<(f64, f64, f64
     }
     let start = line.find('(')?;
     let end = line.rfind(')')?;
-    let coords_str = &line[start + 2..end];
+    let coords_str = &line[start + 2..end - 1];
     let coords: Vec<f64> = coords_str.split(',').filter_map(|s| s.trim().parse::<f64>().ok()).collect();
     if coords.len() == 3 {
         Some((coords[0], coords[1], coords[2]))
@@ -364,6 +375,7 @@ fn parse_direction(index: &IfcIndex, direction_id: u32) -> Option<(f64, f64, f64
 fn build_transform(index: &IfcIndex, axis_id: u32) -> Option<Mat4> {
     let axis_line = index.get(axis_id)?;
     if !axis_line.contains("IFCAXIS2PLACEMENT3D") {
+        //eprintln!("  [build_transform] FAILED at axis_id={}", axis_id);
         return None;
     }
 
@@ -371,6 +383,8 @@ fn build_transform(index: &IfcIndex, axis_id: u32) -> Option<Mat4> {
     let location_id = get_ref_arg(axis_line, 0)?;
     let loc_line = index.get(location_id)?;
     let loc = parse_cartesian_point(loc_line)?;
+    //eprintln!("  [build_transform] axis_id={} loc=({},{},{})", axis_id, loc.0, loc.1, loc.2);
+
 
     // arg 1: axis direction (z-axis) - may be $
     let z_axis = get_ref_arg(axis_line, 1)
@@ -382,6 +396,10 @@ fn build_transform(index: &IfcIndex, axis_id: u32) -> Option<Mat4> {
         .and_then(|id| parse_direction(index, id))
         .unwrap_or((1.0, 0.0, 0.0)); // default x-axis
 
+    //eprintln!("  [build_transform] x_axis=({},{},{}) z_axis=({},{},{})",
+       // x_axis.0, x_axis.1, x_axis.2,
+       // z_axis.0, z_axis.1, z_axis.2);
+
     // Compute y-axis as cross product of z and x
     let y_axis = [
         z_axis.1 * x_axis.2 - z_axis.2 * x_axis.1,
@@ -389,14 +407,18 @@ fn build_transform(index: &IfcIndex, axis_id: u32) -> Option<Mat4> {
         z_axis.0 * x_axis.1 - z_axis.1 * x_axis.0,
     ];
 
-    Some(Mat4 {
+    let mat = Mat4 {
         data: [
             [x_axis.0, y_axis[0], z_axis.0, loc.0],
             [x_axis.1, y_axis[1], z_axis.1, loc.1],
             [x_axis.2, y_axis[2], z_axis.2, loc.2],
             [0.0, 0.0, 0.0, 1.0],
         ],
-    })
+    };
+    //eprintln!("  [build_transform] matrix row0={:?} row1={:?} row2={:?}",
+      //  mat.data[0], mat.data[1], mat.data[2]);
+    Some(mat)
+
 }
 
 // walk full IFCLOCALPLACEMENT -> IFCAXIS2PLACEMENT3D -> IFCCARTESIANPOINT and build a transform matrix
@@ -410,6 +432,9 @@ pub fn resolve_world_matrix(index: &IfcIndex, placement_id: u32) -> Mat4 {
             Some(l) => l.clone(),
             None => break,
         };
+
+        // print check
+        //eprintln!("  [world_matrix] visiting id={} line={}", current_id, &line[..line.len().min(80)]);
 
         if !line.contains("IFCLOCALPLACEMENT") {
             break; // Not a local placement, stop walking
@@ -432,11 +457,14 @@ pub fn resolve_world_matrix(index: &IfcIndex, placement_id: u32) -> Mat4 {
 
     // multiply matrices from root to local
     matrices.reverse();
-    matrices.into_iter().fold(Mat4::identity(), |acc, m| acc.multiply(&m))
+    let result = matrices.into_iter().fold(Mat4::identity(), |acc, m| acc.multiply(&m));
+    //eprintln!("  [world_matrix] final translation: ({},{},{})",
+        //result.data[0][3], result.data[1][3], result.data[2][3]);
+    result
 }
 
 // Extract bounding box from IFCTRIANGULATEDFACESET
-pub fn resolve_triangulated_faceset(index: &IfcIndex, faceset_id: u32) -> Option<[f64; 3]> {
+pub fn resolve_triangulated_faceset(index: &IfcIndex, faceset_id: u32) -> Option<FacesetGeometry> {    
     let faceset_line = index.get(faceset_id)?;
     if !faceset_line.contains("IFCTRIANGULATEDFACESET") {
         return None;
@@ -456,6 +484,8 @@ pub fn resolve_triangulated_faceset(index: &IfcIndex, faceset_id: u32) -> Option
 
     let mut min = [f64::MAX; 3];
     let mut max = [f64::MIN; 3];
+    let mut sum = [0.0f64; 3];
+    let mut count = 0usize;
     let mut found_any = false;
 
     // parse each point tuple
@@ -480,7 +510,9 @@ pub fn resolve_triangulated_faceset(index: &IfcIndex, faceset_id: u32) -> Option
                     for i in 0..3 {
                         min[i] = min[i].min(coords_in_tuple[i]);
                         max[i] = max[i].max(coords_in_tuple[i]);
+                        sum[i] += coords_in_tuple[i];
                     }
+                    count += 1;
                     found_any = true;
                 }
                 depth -= 1;
@@ -503,11 +535,20 @@ pub fn resolve_triangulated_faceset(index: &IfcIndex, faceset_id: u32) -> Option
         return None; // No valid points found
     }
 
-    Some([
-        (max[0] - min[0]).abs(),
-        (max[1] - min[1]).abs(),
-        (max[2] - min[2]).abs(),
-    ])
+    Some(FacesetGeometry {
+        dims: [
+            (max[0] - min[0]).abs(),
+            (max[1] - min[1]).abs(),
+            (max[2] - min[2]).abs(),
+        ],
+        centroid: [
+            sum[0] / count as f64,
+            sum[1] / count as f64,
+            sum[2] / count as f64,
+        ],
+        min,
+        max,
+    })
 }
 
 
@@ -635,11 +676,21 @@ mod tests {
             #11=IFCTRIANGULATEDFACESET(#10,$,((1,2,3),(1,3,4),(5,6,7),(5,7,8)),$);\n";
         fs::write(path, content).unwrap();
         let index = IfcIndex::from_file(path).unwrap();
-        let bounds = resolve_triangulated_faceset(&index, 11).unwrap();
-        // width=4, depth=3, height=2.5
-        assert!((bounds[0] - 4.0).abs() < 0.01, "width should be 4, got {}", bounds[0]);
-        assert!((bounds[1] - 3.0).abs() < 0.01, "depth should be 3, got {}", bounds[1]);
-        assert!((bounds[2] - 2.5).abs() < 0.01, "height should be 2.5, got {}", bounds[2]);
+        let faceset = resolve_triangulated_faceset(&index, 11).unwrap();
+
+        // dimensions
+        assert!((faceset.dims[0] - 4.0).abs() < 0.01, "width should be 4, got {}", faceset.dims[0]);
+        assert!((faceset.dims[1] - 3.0).abs() < 0.01, "depth should be 3, got {}", faceset.dims[1]);
+        assert!((faceset.dims[2] - 2.5).abs() < 0.01, "height should be 2.5, got {}", faceset.dims[2]);
+
+        // centroid — average of 8 points, expected (2.0, 1.5, 1.25)
+        assert!((faceset.centroid[0] - 2.0).abs() < 0.01, "centroid x should be 2.0, got {}", faceset.centroid[0]);
+        assert!((faceset.centroid[1] - 1.5).abs() < 0.01, "centroid y should be 1.5, got {}", faceset.centroid[1]);
+        assert!((faceset.centroid[2] - 1.25).abs() < 0.01, "centroid z should be 1.25, got {}", faceset.centroid[2]);
+
+        // min/max corners
+        assert!((faceset.min[0] - 0.0).abs() < 0.01, "min x should be 0");
+        assert!((faceset.max[0] - 4.0).abs() < 0.01, "max x should be 4");
     }
 
     #[test]

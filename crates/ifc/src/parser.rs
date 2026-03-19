@@ -103,19 +103,41 @@ pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
             String::new(),
         );
 
+        // Helper: check if a world matrix translation is effectively zero
+let world_pos = world_result.map(|(p, _)| p);
+let world_is_zero = world_pos
+    .map(|p| p[0].abs() < 0.001 && p[1].abs() < 0.001 && p[2].abs() < 0.001)
+    .unwrap_or(true);
+
         obj.position = Some(if geo.resolved {
-            world_result
-                .map(|(p, _)| [p[0] * unit_scale, p[1] * unit_scale, p[2] * unit_scale])
-                .unwrap_or([
-                    geo.placement.x * unit_scale,
-                    geo.placement.y * unit_scale,
-                    geo.placement.z * unit_scale,
-                ])
+            // Faceset geometry: prefer centroid when world matrix gives no useful position
+            if world_is_zero {
+                if let Some(c) = geo.centroid {
+                    [c[0] * unit_scale, c[1] * unit_scale, c[2] * unit_scale]
+                } else {
+                    [
+                        geo.placement.x * unit_scale,
+                        geo.placement.y * unit_scale,
+                        geo.placement.z * unit_scale,
+                    ]
+                }
+            } else {
+                let p = world_pos.unwrap();
+                [p[0] * unit_scale, p[1] * unit_scale, p[2] * unit_scale]
+            }
         } else {
-            world_result
-                .map(|(p, _)| p)
+            // Extrusion geometry: world matrix is authoritative
+            world_pos
                 .unwrap_or([geo.placement.x, geo.placement.y, geo.placement.z])
         });
+        // print check
+        /*eprintln!(
+            "[{}] world_zero={} centroid={:?} pos={:?}",
+            obj.name,
+            world_is_zero,
+            geo.centroid,
+            obj.position
+        );*/
 
         obj.dimensions = Some(if geo.resolved {
             [geo.width * unit_scale, geo.depth * unit_scale, geo.height * unit_scale]
