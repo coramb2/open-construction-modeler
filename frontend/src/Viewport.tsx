@@ -30,6 +30,8 @@ export default function Viewport({ objects, selectedId, onSelect }: ViewportProp
     const mountRef = useRef<HTMLDivElement>(null)
     const sceneRef = useRef<THREE.Scene | null>(null)
     const meshMapRef = useRef<Record<string, THREE.Mesh>>({})
+    const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
+    const controlsRef = useRef<OrbitControls | null>(null)
 
     useEffect(() => {
         if (!mountRef.current) return
@@ -46,6 +48,7 @@ export default function Viewport({ objects, selectedId, onSelect }: ViewportProp
         const camera = new THREE.PerspectiveCamera(60, w / h, 0.1, 1000)
         camera.position.set(0, 8, 16)
         camera.lookAt(0, 0, 0)
+        cameraRef.current = camera
 
         // Renderer setup
         const renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -57,11 +60,13 @@ export default function Viewport({ objects, selectedId, onSelect }: ViewportProp
         controls.enableDamping = true
         controls.dampingFactor = 0.05
         controls.target.set(0, 0, 0)
+        controlsRef.current = controls
 
         // Raycaster for object selection
         const raycaster = new THREE.Raycaster()
         const mouse = new THREE.Vector2()
 
+        // clicking objects
         const handleClick = (event: MouseEvent) => {
             const rect = mount.getBoundingClientRect()
             mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
@@ -151,11 +156,13 @@ export default function Viewport({ objects, selectedId, onSelect }: ViewportProp
                 // slabs: wide, flat
                 const w = obj.dimensions ? obj.dimensions[0] : 4.0
                 const d = obj.dimensions ? obj.dimensions[1] : 4.0
-                geo = new THREE.BoxGeometry(w, 0.2, d)
+                const h = obj.dimensions ? obj.dimensions[2] : 0.2
+                geo = new THREE.BoxGeometry(w, h, d)
             } else if (entity.includes('COLUMN')) {
                 // columns: narrow, tall
                 const h = obj.dimensions ? obj.dimensions[2] : 3.0
-                geo = new THREE.CylinderGeometry(0.3, 0.3, h, 16)
+                const r = obj.dimensions ? obj.dimensions[0] / 2 : 0.3
+                geo = new THREE.CylinderGeometry(r, r, h, 16)
             } else if (entity.includes('BEAM')) {
                 // beams: long, horizontal, narrow cross-section
                 const l = obj.dimensions ? obj.dimensions[0] : 4.0
@@ -170,7 +177,8 @@ export default function Viewport({ objects, selectedId, onSelect }: ViewportProp
                 // roofs: wide, sloped
                 const w = obj.dimensions ? obj.dimensions[0] : 4.0
                 const d = obj.dimensions ? obj.dimensions[1] : 4.0
-                geo = new THREE.BoxGeometry(w, 0.2, d)
+                const h = obj.dimensions ? obj.dimensions[2] : 0.2
+                geo = new THREE.BoxGeometry(w, h, d)
             } else if (entity.includes('STAIR')) {
                 // stairs: wide stepped approximation
                 geo = new THREE.BoxGeometry(3.0, 1.5, 4.0)
@@ -190,7 +198,7 @@ export default function Viewport({ objects, selectedId, onSelect }: ViewportProp
             const mat = new THREE.MeshLambertMaterial({ color })
             const mesh = new THREE.Mesh(geo, mat)
 
-            if (obj.position && (obj.position[0] !== 0 || obj.position[1] !== 0 || obj.position[2] !== 0)) {
+            if (obj.position) {
                 // IFC is Z-up, Three.js is Y-up
                 // IFC X → Three.js X
                 // IFC Y → Three.js -Z  
@@ -218,6 +226,9 @@ export default function Viewport({ objects, selectedId, onSelect }: ViewportProp
             scene.add(mesh)
             meshMapRef.current[obj.id] = mesh
         })
+
+        // Reframe camera to fit loaded model
+
     }, [objects])
 
     // Highlight selected object

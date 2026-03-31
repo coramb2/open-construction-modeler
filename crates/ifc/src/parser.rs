@@ -126,9 +126,9 @@ let world_is_zero = world_pos
                 [p[0] * unit_scale, p[1] * unit_scale, p[2] * unit_scale]
             }
         } else {
-            // Extrusion geometry: world matrix is authoritative
-            world_pos
-                .unwrap_or([geo.placement.x, geo.placement.y, geo.placement.z])
+            // Unresolved geometry: world matrix is authoritative, fall back to local placement
+            let p = world_pos.unwrap_or([geo.placement.x, geo.placement.y, geo.placement.z]);
+            [p[0] * unit_scale, p[1] * unit_scale, p[2] * unit_scale]
         });
         // print check
         /*eprintln!(
@@ -168,6 +168,38 @@ mod tests {
         fs::write(path, "").unwrap();
         let result = parse_ifc_file(path).expect("parsing should succeed");
         assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_parse_faceset_millimeter_units() {
+        // All coordinates in mm — unit_scale = 0.001
+        // Faceset dims: 4000×3000×2500 mm → expected output 4.0×3.0×2.5 m
+        // Placement: (3000., 7000., 0.) mm → expected position x=3.0, (y or z)=7.0 m
+        // Double-scaling would give 0.004×0.003×0.0025; missing scale gives 4000×3000×2500
+        let path = "/tmp/ocm_mm_scale_test.ifc";
+        let content = "\
+            #5=IFCSIUNIT(*,.LENGTHUNIT.,.MILLI.,.METRE.);\n\
+            #10=IFCCARTESIANPOINTLIST3D(((0.,0.,0.),(4000.,0.,0.),(4000.,3000.,0.),(0.,3000.,0.),(0.,0.,2500.),(4000.,0.,2500.),(4000.,3000.,2500.),(0.,3000.,2500.)));\n\
+            #11=IFCTRIANGULATEDFACESET(#10,$,((1,2,3),(1,3,4),(5,6,7),(5,7,8)),$);\n\
+            #20=IFCSHAPEREPRESENTATION(#99,'Body','Tessellation',(#11));\n\
+            #21=IFCPRODUCTDEFINITIONSHAPE($,$,(#20));\n\
+            #30=IFCCARTESIANPOINT((3000.,7000.,0.));\n\
+            #31=IFCAXIS2PLACEMENT3D(#30,$,$);\n\
+            #32=IFCLOCALPLACEMENT($,#31);\n\
+            #40=IFCWALLSTANDARDCASE('guid',#9,'MM Wall',$,$,#32,#21,$);\n";
+        fs::write(path, content).unwrap();
+
+        let objects = parse_ifc_file(path).unwrap();
+        assert_eq!(objects.len(), 1);
+        let obj = &objects[0];
+
+        let dims = obj.dimensions.expect("dimensions should be resolved");
+        assert!((dims[0] - 4.0).abs() < 0.01, "width should be 4.0m, got {}", dims[0]);
+        assert!((dims[1] - 3.0).abs() < 0.01, "depth should be 3.0m, got {}", dims[1]);
+        assert!((dims[2] - 2.5).abs() < 0.01, "height should be 2.5m, got {}", dims[2]);
+
+        let pos = obj.position.expect("position should be set");
+        assert!((pos[0] - 3.0).abs() < 0.01, "x should be 3.0m, got {}", pos[0]);
     }
 
     #[test]

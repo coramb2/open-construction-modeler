@@ -243,6 +243,27 @@ pub fn resolve_extrusion_depth(index: &IfcIndex, solid_id: u32) -> Option<f64> {
     get_float_arg(line, 3)
 }
 
+// Resolves IFCBOOLEANCLIPPINGRESULT by extracting geometry from its FirstOperand.
+// IFCBOOLEANCLIPPINGRESULT(Operator, FirstOperand, SecondOperand)
+//   arg 0: operator enum (.DIFFERENCE. etc.)
+//   arg 1: FirstOperand — the base solid before clipping
+//   arg 2: SecondOperand — the clipping solid (ignored here)
+pub fn resolve_boolean_clipping(index: &IfcIndex, solid_id: u32) -> Option<([f64; 3], Option<[f64; 3]>)> {
+    let line = index.get(solid_id)?;
+    if !line.contains("IFCBOOLEANCLIPPINGRESULT") {
+        return None;
+    }
+    let operand_id = get_ref_arg(line, 1)?;
+
+    if let Some(depth) = resolve_extrusion_depth(index, operand_id) {
+        return Some(([1.5, 0.3, depth], None));
+    }
+    if let Some(faceset) = resolve_triangulated_faceset(index, operand_id) {
+        return Some((faceset.dims, Some(faceset.centroid)));
+    }
+    None
+}
+
 // Main entry point - given a wall/slab entity line, resolve its geometry data
 pub fn extract_geometry(index: &IfcIndex, entity_line: &str) -> GeometryData {
     ////eprintln!("  entity arg6 raw: {:?}", get_ref_arg(entity_line, 6));
@@ -265,7 +286,10 @@ pub fn extract_geometry(index: &IfcIndex, entity_line: &str) -> GeometryData {
                         }
                         if let Some(faceset) = resolve_triangulated_faceset(index, geom_id) {
                             ////eprintln!("  -> faceset bounds: {:?}", faceset.dims);
-                            return Some((faceset.dims, Some(faceset.centroid)));                        
+                            return Some((faceset.dims, Some(faceset.centroid)));
+                        }
+                        if let Some(result) = resolve_boolean_clipping(index, geom_id) {
+                            return Some(result);
                         }
                         //eprintln!("  -> neither matched");
                     }
@@ -276,11 +300,13 @@ pub fn extract_geometry(index: &IfcIndex, entity_line: &str) -> GeometryData {
         .map(|d| (d, true))
         .unwrap_or((([1.5, 1.5, 1.0], None), false));
 
+    let raw_dims = dims.0.0;
+
     GeometryData {
         placement,
-        width: dims.0.0[0],
-        depth: dims.0.0[1],
-        height: dims.0.0[2],
+        width: raw_dims[0],
+        depth: raw_dims[1],
+        height: raw_dims[2],
         resolved: dims.1,
         centroid: dims.0.1,
     }
@@ -691,6 +717,68 @@ mod tests {
         // min/max corners
         assert!((faceset.min[0] - 0.0).abs() < 0.01, "min x should be 0");
         assert!((faceset.max[0] - 4.0).abs() < 0.01, "max x should be 4");
+    }
+
+    #[test]
+    fn test_resolve_boolean_clipping_extrusion() {
+        let path = "/tmp/ocm_boolean_clipping_test.ifc";
+        // IFCBOOLEANCLIPPINGRESULT(.DIFFERENCE., FirstOperand, SecondOperand)
+        //   arg 0: operator enum — not a ref
+        //   arg 1: #200 = IFCEXTRUDEDAREASOLID with depth 3.5
+        //   arg 2: #300 = clipping solid (ignored)
+        let content = "\
+            #200= IFCEXTRUDEDAREASOLID(#99,#98,#97,3.5);\n\
+            #300= IFCHALFSPACESOLID(#301,.F.);\n\
+            #400= IFCBOOLEANCLIPPINGRESULT(.DIFFERENCE.,#200,#300);\n";
+        fs::write(path, content).unwrap();
+
+        let index = IfcIndex::from_file(path).unwrap();
+        let result = resolve_boolean_clipping(&index, 400).unwrap();
+        // dims[2] should be the extrusion depth
+        assert!((result.0[2] - 3.5).abs() < 0.01, "depth should be 3.5, got {}", result.0[2]);
+        // extrusion path: centroid is None
+        assert!(result.1.is_none());
+    }
+
+    #[test]
+    fn test_resolve_boolean_clipping_faceset() {
+        let path = "/tmp/ocm_boolean_clipping_faceset_test.ifc";
+        // FirstOperand is IFCTRIANGULATEDFACESET, not an extrusion — centroid must be Some
+        let content = "\
+            #10=IFCCARTESIANPOINTLIST3D(((0.,0.,0.),(4.,0.,0.),(4.,3.,0.),(0.,3.,0.),(0.,0.,2.5),(4.,0.,2.5),(4.,3.,2.5),(0.,3.,2.5)));\n\
+            #11=IFCTRIANGULATEDFACESET(#10,$,((1,2,3),(1,3,4),(5,6,7),(5,7,8)),$);\n\
+            #20=IFCHALFSPACESOLID(#21,.F.);\n\
+            #30=IFCBOOLEANCLIPPINGRESULT(.DIFFERENCE.,#11,#20);\n";
+        fs::write(path, content).unwrap();
+
+        let index = IfcIndex::from_file(path).unwrap();
+        let result = resolve_boolean_clipping(&index, 30).unwrap();
+
+        // dims from the faceset bounding box: 4 x 3 x 2.5
+        assert!((result.0[0] - 4.0).abs() < 0.01, "width should be 4, got {}", result.0[0]);
+        assert!((result.0[1] - 3.0).abs() < 0.01, "depth should be 3, got {}", result.0[1]);
+        assert!((result.0[2] - 2.5).abs() < 0.01, "height should be 2.5, got {}", result.0[2]);
+
+        // faceset path: centroid must be Some with expected values (2.0, 1.5, 1.25)
+        let centroid = result.1.expect("centroid should be Some for faceset path");
+        assert!((centroid[0] - 2.0).abs() < 0.01, "centroid x should be 2.0, got {}", centroid[0]);
+        assert!((centroid[1] - 1.5).abs() < 0.01, "centroid y should be 1.5, got {}", centroid[1]);
+        assert!((centroid[2] - 1.25).abs() < 0.01, "centroid z should be 1.25, got {}", centroid[2]);
+    }
+
+    #[test]
+    fn test_resolve_boolean_clipping_unhandled_operand() {
+        let path = "/tmp/ocm_boolean_clipping_unhandled_test.ifc";
+        // FirstOperand is IFCSWEPTDISKSOLID — neither resolve_extrusion_depth nor
+        // resolve_triangulated_faceset matches it, so the function must return None
+        let content = "\
+            #10=IFCSWEPTDISKSOLID(#11,0.05,$,$,$);\n\
+            #20=IFCHALFSPACESOLID(#21,.F.);\n\
+            #30=IFCBOOLEANCLIPPINGRESULT(.DIFFERENCE.,#10,#20);\n";
+        fs::write(path, content).unwrap();
+
+        let index = IfcIndex::from_file(path).unwrap();
+        assert!(resolve_boolean_clipping(&index, 30).is_none());
     }
 
     #[test]
