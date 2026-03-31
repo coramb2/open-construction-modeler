@@ -233,14 +233,88 @@ impl GeometryData {
     }
 }
 
-// Resolves IFCEXTRUDEDAREASOLID -> extrusion depth (height)
-pub fn resolve_extrusion_depth(index: &IfcIndex, solid_id: u32) -> Option<f64> {
+// Extracts (width, depth) from a swept profile entity.
+// Handles IFCRECTANGLEPROFILEDEF (direct dims) and IFCARBITRARYCLOSEDPROFILEDEF (polyline bbox).
+pub fn resolve_profile_dims(index: &IfcIndex, profile_id: u32) -> Option<(f64, f64)> {
+    let line = index.get(profile_id)?;
+
+    if line.contains("IFCRECTANGLEPROFILEDEF") {
+        // IFCRECTANGLEPROFILEDEF(ProfileType, ProfileName, Position, XDim, YDim)
+        //   arg 0: profile type enum
+        //   arg 1: name string
+        //   arg 2: placement ref (or $)
+        //   arg 3: XDim
+        //   arg 4: YDim
+        let x = get_float_arg(line, 3)?;
+        let y = get_float_arg(line, 4)?;
+        return Some((x, y));
+    }
+
+    if line.contains("IFCARBITRARYCLOSEDPROFILEDEF") {
+        // IFCARBITRARYCLOSEDPROFILEDEF(ProfileType, ProfileName, OuterCurve)
+        //   arg 2: ref to IFCPOLYLINE or other curve
+        let curve_id = get_ref_arg(line, 2)?;
+        let curve_line = index.get(curve_id)?;
+
+        if !curve_line.contains("IFCPOLYLINE") {
+            return None;
+        }
+
+        // Points are a nested list: IFCPOLYLINE((#a, #b, ...))
+        // Parse the list of point refs from arg 0
+        let point_ids = get_list_arg(curve_line, 0);
+        if point_ids.is_empty() {
+            return None;
+        }
+
+        let mut min_x = f64::MAX;
+        let mut max_x = f64::MIN;
+        let mut min_y = f64::MAX;
+        let mut max_y = f64::MIN;
+        let mut found_any = false;
+
+        for pt_id in point_ids {
+            let pt_line = index.get(pt_id)?;
+            // 2D cartesian point: IFCCARTESIANPOINT((x, y))
+            let start = pt_line.find('(')?;
+            let end = pt_line.rfind(')')?;
+            let coords_str = &pt_line[start + 2..end - 1];
+            let coords: Vec<f64> = coords_str
+                .split(',')
+                .filter_map(|s| s.trim().parse::<f64>().ok())
+                .collect();
+            if coords.len() >= 2 {
+                min_x = min_x.min(coords[0]);
+                max_x = max_x.max(coords[0]);
+                min_y = min_y.min(coords[1]);
+                max_y = max_y.max(coords[1]);
+                found_any = true;
+            }
+        }
+
+        if found_any {
+            return Some(((max_x - min_x).abs(), (max_y - min_y).abs()));
+        }
+    }
+
+    None
+}
+
+// Resolves IFCEXTRUDEDAREASOLID -> (width, depth, height) using actual profile dims.
+// Returns None if this is not an IFCEXTRUDEDAREASOLID.
+// Falls back to (1.5, 0.3) placeholder if profile extraction fails.
+pub fn resolve_extrusion_depth(index: &IfcIndex, solid_id: u32) -> Option<[f64; 3]> {
     let line = index.get(solid_id)?;
     if !line.contains("IFCEXTRUDEDAREASOLID") {
-        return None; // Not an extruded area solid
+        return None;
     }
-    // arg 3 is the extrusion depth
-    get_float_arg(line, 3)
+    // arg 0: SweptArea (profile)
+    // arg 3: Depth (extrusion height)
+    let depth = get_float_arg(line, 3)?;
+    let (width, thickness) = get_ref_arg(line, 0)
+        .and_then(|profile_id| resolve_profile_dims(index, profile_id))
+        .unwrap_or((1.5, 0.3));
+    Some([width, thickness, depth])
 }
 
 // Resolves IFCBOOLEANCLIPPINGRESULT by extracting geometry from its FirstOperand.
@@ -255,8 +329,8 @@ pub fn resolve_boolean_clipping(index: &IfcIndex, solid_id: u32) -> Option<([f64
     }
     let operand_id = get_ref_arg(line, 1)?;
 
-    if let Some(depth) = resolve_extrusion_depth(index, operand_id) {
-        return Some(([1.5, 0.3, depth], None));
+    if let Some(dims) = resolve_extrusion_depth(index, operand_id) {
+        return Some((dims, None));
     }
     if let Some(faceset) = resolve_triangulated_faceset(index, operand_id) {
         return Some((faceset.dims, Some(faceset.centroid)));
@@ -280,9 +354,9 @@ pub fn extract_geometry(index: &IfcIndex, entity_line: &str) -> GeometryData {
                 if let Some(repr_line) = index.get(repr_id) {
                     for geom_id in get_list_arg(repr_line, 3) {
                         ////eprintln!("  geom_id: {}", geom_id);
-                        if let Some(depth) = resolve_extrusion_depth(index, geom_id) {
-                            ////eprintln!("  -> extrusion depth: {}", depth);
-                            return Some(([1.5, 0.3, depth], None));
+                        if let Some(dims) = resolve_extrusion_depth(index, geom_id) {
+                            ////eprintln!("  -> extrusion dims: {:?}", dims);
+                            return Some((dims, None));
                         }
                         if let Some(faceset) = resolve_triangulated_faceset(index, geom_id) {
                             ////eprintln!("  -> faceset bounds: {:?}", faceset.dims);
@@ -633,12 +707,13 @@ mod tests {
     #[test]
     fn test_resolve_extrusion_depth() {
         let path = "/tmp/ocm_extrusion_test.ifc";
+        // Profile (#194) not in index → fallback dims (1.5, 0.3); depth = 3.2
         let content = "#200= IFCEXTRUDEDAREASOLID(#194,#197,#198,3.2);\n";
         fs::write(path, content).unwrap();
 
         let index = IfcIndex::from_file(path).unwrap();
-        let depth = resolve_extrusion_depth(&index, 200).unwrap();
-        assert_eq!(depth, 3.2);
+        let dims = resolve_extrusion_depth(&index, 200).unwrap();
+        assert!((dims[2] - 3.2).abs() < 0.001, "depth should be 3.2, got {}", dims[2]);
     }
 
     #[test]

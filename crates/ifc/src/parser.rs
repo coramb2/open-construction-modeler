@@ -86,13 +86,7 @@ pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
         let geo = extract_geometry(&index, line);
 
         let world_result = get_ref_arg(line, 5)
-            .and_then(|id| {
-                let mat = resolve_world_matrix(&index, id);
-                //let local = [geo.placement.x, geo.placement.y, geo.placement.z];
-                let pos = mat.transform_point(0.0, 0.0, 0.0);
-                let rot = mat.to_euler_xyz();
-                Some((pos, rot))
-            });
+            .map(|id| resolve_world_matrix(&index, id));
 
         let mut obj = ConstructionObject::new(
             name.to_string(),
@@ -103,51 +97,35 @@ pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
             String::new(),
         );
 
-        // Helper: check if a world matrix translation is effectively zero
-let world_pos = world_result.map(|(p, _)| p);
-let world_is_zero = world_pos
-    .map(|p| p[0].abs() < 0.001 && p[1].abs() < 0.001 && p[2].abs() < 0.001)
-    .unwrap_or(true);
-
-        obj.position = Some(if geo.resolved {
-            // Faceset geometry: prefer centroid when world matrix gives no useful position
-            if world_is_zero {
-                if let Some(c) = geo.centroid {
-                    [c[0] * unit_scale, c[1] * unit_scale, c[2] * unit_scale]
-                } else {
-                    [
-                        geo.placement.x * unit_scale,
-                        geo.placement.y * unit_scale,
-                        geo.placement.z * unit_scale,
-                    ]
-                }
-            } else {
-                let p = world_pos.unwrap();
-                [p[0] * unit_scale, p[1] * unit_scale, p[2] * unit_scale]
-            }
-        } else {
-            // Unresolved geometry: world matrix is authoritative, fall back to local placement
-            let p = world_pos.unwrap_or([geo.placement.x, geo.placement.y, geo.placement.z]);
+        // World position from matrix translation column, scaled to meters
+        let world_pos = world_result.as_ref().map(|mat| {
+            let p = mat.transform_point(0.0, 0.0, 0.0);
             [p[0] * unit_scale, p[1] * unit_scale, p[2] * unit_scale]
         });
-        // print check
-        /*eprintln!(
-            "[{}] world_zero={} centroid={:?} pos={:?}",
-            obj.name,
-            world_is_zero,
-            geo.centroid,
-            obj.position
-        );*/
+
+        obj.position = Some(world_pos.unwrap_or([
+            geo.placement.x * unit_scale,
+            geo.placement.y * unit_scale,
+            geo.placement.z * unit_scale,
+        ]));
 
         obj.dimensions = Some(if geo.resolved {
             [geo.width * unit_scale, geo.depth * unit_scale, geo.height * unit_scale]
         } else {
             [geo.width, geo.depth, geo.height]
         });
-        
-        obj.rotation = Some(world_result
-            .map(|(_, r)| r)
-            .unwrap_or([0.0, 0.0, 0.0]));
+
+        // Serialize world matrix as 16 floats, row-major, in IFC space.
+        // The coordinate remap (Z-up → Y-up) is applied on the frontend.
+        obj.matrix = world_result.map(|mat| {
+            let d = &mat.data;
+            [
+                d[0][0], d[0][1], d[0][2], d[0][3] * unit_scale,
+                d[1][0], d[1][1], d[1][2], d[1][3] * unit_scale,
+                d[2][0], d[2][1], d[2][2], d[2][3] * unit_scale,
+                d[3][0], d[3][1], d[3][2], d[3][3],
+            ]
+        });
 
         // DEBUG - remove after diagnosis
         //eprintln!("{}: pos={:?} dims={:?}", name, obj.position, obj.dimensions);

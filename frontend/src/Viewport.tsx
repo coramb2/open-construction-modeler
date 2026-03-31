@@ -9,7 +9,7 @@ interface ConstructionObject {
     entity_type: string | null
     position: [number, number, number] | null
     dimensions: [number, number, number] | null
-    rotation: [number, number, number] | null
+    matrix: number[] | null   // 16 floats, row-major, IFC Z-up space
 }
 
 interface ViewportProps {
@@ -198,28 +198,44 @@ export default function Viewport({ objects, selectedId, onSelect }: ViewportProp
             const mat = new THREE.MeshLambertMaterial({ color })
             const mesh = new THREE.Mesh(geo, mat)
 
-            if (obj.position) {
-                // IFC is Z-up, Three.js is Y-up
-                // IFC X → Three.js X
-                // IFC Y → Three.js -Z  
-                // IFC Z → Three.js Y (height)
+            if (obj.matrix) {
+                // Apply T = C × M × C⁻¹ to remap IFC Z-up world matrix → Three.js Y-up.
+                // M is row-major: m[r*4+c]. Three.js Matrix4.set() is also row-major.
+                // C maps IFC→Three.js: X→X, Z→Y, Y→-Z
+                // T rows derived from C×M×C⁻¹:
+                //   row 0: [ m00,  m02, -m01,  m03 ]
+                //   row 1: [ m20,  m22, -m21,  m23 ]
+                //   row 2: [-m10, -m12,  m11, -m13 ]
+                //   row 3: [   0,    0,    0,    1  ]
+                const m = obj.matrix
+                const threeMatrix = new THREE.Matrix4()
+                threeMatrix.set(
+                     m[0],  m[2], -m[1],  m[3],
+                     m[8], m[10],  -m[9], m[11],
+                    -m[4], -m[6],  m[5],  -m[7],
+                    0,     0,      0,      1
+                )
+
+                // Decompose into position + quaternion so we can add the h/2 centering offset.
+                // The matrix translation is the extrusion base; BoxGeometry is centered.
+                const pos = new THREE.Vector3()
+                const quat = new THREE.Quaternion()
+                const scale = new THREE.Vector3()
+                threeMatrix.decompose(pos, quat, scale)
+
+                const halfH = (obj.dimensions?.[2] ?? 0) / 2
+                pos.y += halfH   // shift box center to mid-height of extrusion
+
+                mesh.position.copy(pos)
+                mesh.quaternion.copy(quat)
+            } else if (obj.position) {
+                // Fallback when no matrix: apply coordinate swap to position only
+                const halfH = (obj.dimensions?.[2] ?? 0) / 2
                 mesh.position.set(
                     obj.position[0],
-                    obj.position[2],   // IFC Z becomes Three.js Y (height)
-                    -obj.position[1]   // IFC Y becomes Three.js -Z (depth)
+                    obj.position[2] + halfH,
+                    -obj.position[1]
                 )
-                if (obj.rotation) {
-                    mesh.rotation.set(
-                        obj.rotation[0],   // IFC X-rot → Three.js X-rot
-                        obj.rotation[2],   // IFC Z-rot → Three.js Y-rot
-                        -obj.rotation[1]   // IFC Y-rot → Three.js -Z-rot
-                    )
-                }
-
-             // const cols = 6
-             // const x = (i % cols) * 2.5 - (cols * 1.25)
-            //  const z = Math.floor(i / cols) * 2.5 - 4
-             // mesh.position.set(x, 0, z)
             }
 
             mesh.userData.id = obj.id
