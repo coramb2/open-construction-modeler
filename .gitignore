@@ -10,6 +10,9 @@ frontend/.vite
 # Tauri
 src-tauri/target
 
+# Claude
+.claude
+
 # System
 .DS_Store
 *.swp
