@@ -15,7 +15,7 @@ interface ConstructionObject {
   entity_type: string | null
   position: [number, number, number] | null
   dimensions: [number, number, number] | null
-  rotation: [number, number, number] | null
+  matrix: number[] | null
 }
 
 interface Project {
@@ -88,11 +88,12 @@ function App() {
     {project && (
       <div className="px-3 py-2 border-b border-gray-700 flex flex-wrap gap-1">
         {Object.entries({
-          Structural: '4488ff',
-          Architectural: 'aaaaaa',
-          Mechanical: 'ff8844',
-          Electrical: 'ffee44',
-          Plumbing: '44ffaa',
+          Structural: 'E8E8E8',
+          Architectural: 'FF6B35',
+          Mechanical: '4B9FE1',
+          Electrical: 'FFD700',
+          Plumbing: '44CC66',
+          Civil: 'A0785A',
         }).map(([trade, color]) => {
           const hidden = hiddenTrades.has(trade)
           return (

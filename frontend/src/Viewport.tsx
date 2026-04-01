@@ -19,11 +19,12 @@ interface ViewportProps {
 }
 
 const TRADE_COLORS: Record<string, number> = {
-    Structural: 0x4488ff,
-    Mechanical: 0xff8844,
-    Electrical: 0xffee44,
-    Plumbing:   0x44ffaa,
-    Architectural: 0xaaaaaa,
+    Structural: 0xE8E8E8,       // light gray walls/slabs
+    Architectural: 0xFF6B35,    // bright orange ducts
+    Mechanical: 0x4B9FE1,       // bright blue conduits
+    Electrical: 0xFFD700,       // gold for wiring
+    Plumbing:   0x44CC66,       // green for pipes
+    Civil: 0xA0785A,            // brown for site elements
 }
 
 export default function Viewport({ objects, selectedId, onSelect }: ViewportProps) {

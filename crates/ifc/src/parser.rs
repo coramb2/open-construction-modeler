@@ -85,6 +85,12 @@ pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
         let entity_type = get_entity_type(line).map(|s| s.to_string());
         let geo = extract_geometry(&index, line);
 
+        if let Some(ref t) = entity_type {
+            if t.ends_with("TYPE") || t == "IFCSPACE" {
+                continue;
+            }
+        }
+
         let world_result = get_ref_arg(line, 5)
             .map(|id| resolve_world_matrix(&index, id));
 
@@ -96,6 +102,8 @@ pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
             String::new(),
             String::new(),
         );
+
+
 
         // World position from matrix translation column, scaled to meters
         let world_pos = world_result.as_ref().map(|mat| {
