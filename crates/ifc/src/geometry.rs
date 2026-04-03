@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use anyhow::Result;
 use std::fs;
+use std::path::Path;
 
 // A parsed IFC file indexed by entity ID
 // Key: entity number (e.g. 15042 for line #15042)
@@ -11,6 +12,11 @@ pub struct IfcIndex {
 
 impl IfcIndex {
     pub fn from_file(path: &str) -> Result<Self> {
+        // Prevent path traversal attacks by rejecting paths containing '..'.
+        let path = Path::new(path);
+        if path.components().any(|c| c == std::path::Component::ParentDir) {
+            return Err(anyhow::anyhow!("Invalid input: {}", path.display()));
+        }
         let contents = fs::read_to_string(path)?;
         let mut lines = HashMap::new();
 
