@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use anyhow::Result;
 use std::fs;
+use std::path::Path;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Project {
@@ -36,6 +37,11 @@ impl Project {
     }
 
     pub fn load(path: &str) -> Result<Self> {
+        // Prevent path traversal attacks by rejecting paths containing '..'.
+        let path = Path::new(path);
+        if path.components().any(|c| c == std::path::Component::ParentDir) {
+            return Err(anyhow::anyhow!("Invalid input: {}", path.display()));
+        }
         let json = fs::read_to_string(path)?;
         let project = serde_json::from_str(&json)?;
         Ok(project)

@@ -2,6 +2,7 @@ use anyhow::Result;
 use engine::metadata::{LodLevel, Trade};
 use engine::object::ConstructionObject;
 use std::fs;
+use std::path::Path;
 use crate::geometry::{IfcIndex, extract_geometry, get_entity_type, get_ref_arg, resolve_world_matrix, detect_length_unit};
 
 fn detect_trade(line: &str) -> Option<Trade> {
@@ -56,8 +57,13 @@ fn is_noise_object(name: &str) -> bool {
 }
 
 pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
-    let contents = fs::read_to_string(path)?;
-    let index = IfcIndex::from_file(path)?;
+    // Prevent path traversal attacks by rejecting paths containing '..'.
+    let path_obj = Path::new(path);
+    if path_obj.components().any(|c| c == std::path::Component::ParentDir) {
+        return Err(anyhow::anyhow!("Invalid input: {}", path_obj.display()));
+    }
+    let contents = fs::read_to_string(path_obj)?;
+    let index = IfcIndex::from_file(path_obj)?;
     let unit_scale = detect_length_unit(&index);
     let mut objects = Vec::new();
 
