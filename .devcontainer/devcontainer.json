@@ -1,0 +1,31 @@
+{
+    "name": "Open Construction Modeler",
+    "build": {
+        "dockerfile": "../Dockerfile"
+    },
+    "runArgs": [
+        "--env=DISPLAY=${env:DISPLAY}",
+        "--volume=/tmp/.X11-unix:/tmp/.X11-unix",
+        "--volume=/mnt/wslg:/mnt/wslg",
+        "--env=WAYLAND_DISPLAY=${env:WAYLAND_DISPLAY}",
+        "--env=XDG_RUNTIME_DIR=${env:XDG_RUNTIME_DIR}",
+        "--env=PULSE_SERVER=${env:PULSE_SERVER}"
+    ],
+    "mounts": [
+        "source=${localWorkspaceFolder},target=/app,type=bind"
+    ],
+    "workspaceFolder": "/app",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "rust-lang.rust-analyzer",
+                "tauri-apps.tauri-vscode",
+                "ms-azuretools.vscode-docker",
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode"
+            ]
+        }
+    },
+    "postCreateCommand": "cd frontend && npm install",
+    "remoteUser": "appuser"
+}

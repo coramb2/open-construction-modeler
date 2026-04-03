@@ -11,7 +11,7 @@ frontend/.vite
 src-tauri/target
 
 # Claude
-.claude
+.claude/
 
 # System
 .DS_Store
