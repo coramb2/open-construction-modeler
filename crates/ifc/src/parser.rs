@@ -62,8 +62,8 @@ pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
     if path_obj.components().any(|c| c == std::path::Component::ParentDir) {
         return Err(anyhow::anyhow!("Invalid input: {}", path_obj.display()));
     }
-    let contents = fs::read_to_string(path)?;
-    let index = IfcIndex::from_file(path)?;
+    let contents = fs::read_to_string(path_obj)?;
+    let index = IfcIndex::from_file(path_obj)?;
     let unit_scale = detect_length_unit(&index);
     let mut objects = Vec::new();
 
