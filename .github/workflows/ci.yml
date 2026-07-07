@@ -7,20 +7,84 @@ on:
     branches: [ main ]
 
 jobs:
-    test:
-        runs-on: ubuntu-latest
+  rust:
+    runs-on: ubuntu-latest
 
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-            - name: Build Docker image
-              run: docker build -t ocm-ci .
+      - name: Build CI image
+        run: docker build -t ocm-ci .
 
-            - name: Run tests
-              run: |
-                  docker run --rm \
-                      -v ${{ github.workspace }}:/app \
-                      -w /app \
-                      ocm-ci \
-                      cargo test -p engine -p ifc -p app
+      # --user root: the image's non-root `appuser` (for local/devcontainer use)
+      # is baked at a fixed UID that only coincidentally matches the checkout
+      # owner's UID on some runners. Bind-mounting the workspace as appuser can
+      # silently break (Permission denied writing target/) on any runner where
+      # it doesn't. Root in an ephemeral CI container carries no extra risk.
+      #
+      # Runs every workspace member, including the Tauri backend (src-tauri) —
+      # the previous config only tested engine/ifc/app and silently skipped
+      # backend command code (Mutex handling, IPC surface, etc.).
+      - name: cargo test --workspace
+        run: |
+          docker run --rm \
+              --user root \
+              -v ${{ github.workspace }}:/app \
+              -w /app \
+              ocm-ci \
+              cargo test --workspace
+
+      - name: cargo clippy (deny warnings)
+        run: |
+          docker run --rm \
+              --user root \
+              -v ${{ github.workspace }}:/app \
+              -w /app \
+              ocm-ci \
+              cargo clippy --workspace --all-targets -- -D warnings
+
+      # Informational only: current findings are DoS advisories in quick-xml,
+      # pulled in transitively via Tauri's macOS bundler (plist crate) for
+      # build-time Info.plist generation only — not reachable via runtime or
+      # user-supplied input in this app. Flagged here so new, actionable
+      # advisories are visible without blocking merges on build-tool noise.
+      - name: cargo audit (advisory only)
+        continue-on-error: true
+        run: |
+          docker run --rm \
+              --user root \
+              -v ${{ github.workspace }}:/app \
+              -w /app \
+              ocm-ci \
+              bash -c "cargo install cargo-audit --locked -q && cargo audit"
+
+  frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Typecheck + build
+        working-directory: frontend
+        run: npm run build
+
+      - name: npm audit (high+ severity)
+        working-directory: frontend
+        run: npm audit --audit-level=high

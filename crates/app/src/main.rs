@@ -3,7 +3,6 @@ use clap::{Parser, Subcommand};
 use engine::metadata::{ConstructionStatus, LodLevel, Trade};
 use engine::object::ConstructionObject;
 use engine::project::Project;
-use ifc;
 
 #[derive(Parser)]
 #[command(name = "ocm")]
