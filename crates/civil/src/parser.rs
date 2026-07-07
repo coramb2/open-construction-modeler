@@ -286,4 +286,109 @@ mod tests {
         let result = parse_dxf_file(path);
         assert!(result.is_err());
     }
+
+    #[test]
+    fn test_entity_type_is_tagged_for_frontend_rendering() {
+        // Viewport.tsx switches on entity_type — a wrong or missing tag would
+        // silently mis-render every DXF-imported object.
+        let path = "/tmp/ocm_civil_entity_type.dxf";
+        write_dxf(path, "0\nLINE\n8\nC-ROAD\n10\n0.0\n20\n0.0\n30\n0.0\n11\n10.0\n21\n0.0\n31\n0.0\n");
+        let objects = parse_dxf_file(path).unwrap();
+        assert_eq!(objects[0].entity_type, Some("DXF_LINE".to_string()));
+    }
+
+    #[test]
+    fn test_lwpolyline_with_single_vertex_is_skipped() {
+        let path = "/tmp/ocm_civil_polyline_single_vertex.dxf";
+        write_dxf(path, "0\nLWPOLYLINE\n8\nC-CURB\n90\n1\n70\n0\n10\n0.0\n20\n0.0\n");
+        let objects = parse_dxf_file(path).unwrap();
+        assert!(objects.is_empty(), "a polyline with <2 vertices has no meaningful extent");
+    }
+
+    #[test]
+    fn test_zero_radius_circle_is_skipped() {
+        let path = "/tmp/ocm_civil_circle_zero_radius.dxf";
+        write_dxf(path, "0\nCIRCLE\n8\nC-STRUCT\n10\n0.0\n20\n0.0\n30\n0.0\n40\n0.0\n");
+        let objects = parse_dxf_file(path).unwrap();
+        assert!(objects.is_empty(), "a zero-radius circle is degenerate geometry");
+    }
+
+    #[test]
+    fn test_unsupported_entity_type_is_skipped_not_errored() {
+        // ARC is a common, legitimate DXF entity this parser deliberately
+        // doesn't support yet — it must be silently skipped, not error out
+        // the whole file (which would block every other entity from
+        // importing) and not panic.
+        let path = "/tmp/ocm_civil_unsupported_entity.dxf";
+        write_dxf(
+            path,
+            "0\nARC\n8\nC-ROAD\n10\n0.0\n20\n0.0\n30\n0.0\n40\n5.0\n50\n0.0\n51\n90.0\n",
+        );
+        let objects = parse_dxf_file(path).unwrap();
+        assert!(objects.is_empty());
+    }
+
+    #[test]
+    fn test_multiple_entities_across_layers_all_extracted() {
+        let path = "/tmp/ocm_civil_multi_entity.dxf";
+        write_dxf(
+            path,
+            "0\nLINE\n8\nC-ROAD\n10\n0.0\n20\n0.0\n30\n0.0\n11\n10.0\n21\n0.0\n31\n0.0\n\
+             0\nCIRCLE\n8\nC-STRUCT\n10\n0.0\n20\n0.0\n30\n0.0\n40\n2.5\n\
+             0\nPOINT\n8\nC-SURVEY\n10\n1.0\n20\n2.0\n30\n0.0\n",
+        );
+        let objects = parse_dxf_file(path).unwrap();
+        assert_eq!(objects.len(), 3);
+        let names: std::collections::HashSet<_> = objects.iter().map(|o| o.name.clone()).collect();
+        assert!(names.contains("Line (C-ROAD)"));
+        assert!(names.contains("Circle (C-STRUCT)"));
+        assert!(names.contains("Survey Point (C-SURVEY)"));
+    }
+
+    #[test]
+    fn test_unit_scale_conversions() {
+        assert!((unit_scale(Units::Meters) - 1.0).abs() < 1e-9);
+        assert!((unit_scale(Units::Millimeters) - 0.001).abs() < 1e-9);
+        assert!((unit_scale(Units::Centimeters) - 0.01).abs() < 1e-9);
+        assert!((unit_scale(Units::Decimeters) - 0.1).abs() < 1e-9);
+        assert!((unit_scale(Units::Decameters) - 10.0).abs() < 1e-9);
+        assert!((unit_scale(Units::Hectometers) - 100.0).abs() < 1e-9);
+        assert!((unit_scale(Units::Kilometers) - 1000.0).abs() < 1e-9);
+        assert!((unit_scale(Units::Feet) - 0.3048).abs() < 1e-9);
+        assert!((unit_scale(Units::USSurveyFeet) - 0.3048).abs() < 1e-9);
+        assert!((unit_scale(Units::Inches) - 0.0254).abs() < 1e-9);
+        assert!((unit_scale(Units::Yards) - 0.9144).abs() < 1e-9);
+        assert!((unit_scale(Units::Miles) - 1609.344).abs() < 1e-6);
+        // Unitless (the DXF default when $INSUNITS is absent) assumes meters
+        // rather than refusing to import — documented, not a silent bug.
+        assert!((unit_scale(Units::Unitless) - 1.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_feet_units_scaled_to_meters_end_to_end() {
+        let path = "/tmp/ocm_civil_feet.dxf";
+        let content = "\
+0\nSECTION\n2\nHEADER\n9\n$INSUNITS\n70\n2\n0\nENDSEC\n\
+0\nSECTION\n2\nENTITIES\n\
+0\nLINE\n8\nC-ROAD\n10\n0.0\n20\n0.0\n30\n0.0\n11\n10.0\n21\n0.0\n31\n0.0\n\
+0\nENDSEC\n0\nEOF\n";
+        fs::write(path, content).unwrap();
+        let objects = parse_dxf_file(path).unwrap();
+        let dims = objects[0].dimensions.unwrap();
+        assert!((dims[0] - 3.048).abs() < 0.001, "10ft should scale to 3.048m, got {}", dims[0]);
+    }
+
+    #[test]
+    fn test_bbox_from_points_empty_slice_returns_none() {
+        assert!(BBox::from_points(&[]).is_none());
+    }
+
+    #[test]
+    fn test_bbox_from_points_single_point_has_zero_extent() {
+        let bbox = BBox::from_points(&[[1.0, 2.0, 3.0]]).unwrap();
+        assert_eq!(bbox.center(), [1.0, 2.0, 3.0]);
+        assert_eq!(bbox.dims(0.0), [0.0, 0.0, 0.0]);
+        // The min_thickness floor must still apply even to a degenerate bbox
+        assert_eq!(bbox.dims(0.15), [0.15, 0.15, 0.15]);
+    }
 }
