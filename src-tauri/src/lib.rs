@@ -1,5 +1,7 @@
+use civil::parser::parse_dxf_file;
 use engine::bcf::export_clashes_to_bcf;
 use engine::clash::ClashDetector;
+use engine::object::ConstructionObject;
 use engine::project::Project;
 use ifc::parser::parse_ifc_file;
 use tauri::command;
@@ -17,31 +19,37 @@ fn lock_project(state: &AppState) -> MutexGuard<'_, Option<Project>> {
     state.project.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
+/// Wraps a freshly imported (IFC/DXF) object list in a new Project named
+/// after the source file, since neither format carries an OCM project id.
+fn wrap_imported_objects(path: &str, objects: Vec<ConstructionObject>) -> Project {
+    let mut project = Project::new(
+        Path::new(path)
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string(),
+    );
+    for obj in objects {
+        project.add_object(obj);
+    }
+    project
+}
+
 #[command]
 fn load_project(path: String, state: tauri::State<AppState>) -> Result<serde_json::Value, String> {
-    if path.ends_with(".ifc") {
-        // parse IFC and wrap in a temp project
+    let project = if path.ends_with(".ifc") {
         let objects = parse_ifc_file(&path).map_err(|e| e.to_string())?;
-        let mut project = Project::new(
-            std::path::Path::new(&path)
-                .file_name()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string()
-        );
-
-        for obj in objects {
-            project.add_object(obj);
-        }
-        *lock_project(&state) = Some(project.clone());
-        serde_json::to_value(&project).map_err(|e| e.to_string())
+        wrap_imported_objects(&path, objects)
+    } else if path.ends_with(".dxf") {
+        let objects = parse_dxf_file(&path).map_err(|e| e.to_string())?;
+        wrap_imported_objects(&path, objects)
     } else {
         // load project from .ocm file
-        let project = Project::load(&path).map_err(|e| e.to_string())?;
-        *lock_project(&state) = Some(project.clone());
-        serde_json::to_value(&project).map_err(|e| e.to_string())
-    }
+        Project::load(&path).map_err(|e| e.to_string())?
+    };
 
+    *lock_project(&state) = Some(project.clone());
+    serde_json::to_value(&project).map_err(|e| e.to_string())
 }
 
 #[command]

@@ -23,4 +23,5 @@ tauri = { version = "2.10.0", features = [] }
 tauri-plugin-log = "2"
 engine = { path = "../crates/engine" }
 ifc = { path = "../crates/ifc" }
+civil = { path = "../crates/civil" }
 tauri-plugin-dialog = "2.6.0"

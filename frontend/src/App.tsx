@@ -121,7 +121,7 @@ function App() {
       const path = await open({
         filters: [{
           name: 'Construction Model',
-          extensions: ['ocm', 'ifc']
+          extensions: ['ocm', 'ifc', 'dxf']
         }]
     })
     if (!path) return // User cancelled
