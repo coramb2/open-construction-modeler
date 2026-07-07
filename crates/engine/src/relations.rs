@@ -74,4 +74,50 @@ mod tests {
         assert_eq!(relations.sequenced_after.len(), 1);
         assert!(relations.assembly_parent.is_none());
     }
+
+    #[test]
+    fn test_add_sequence_no_duplicates() {
+        let mut relations = Relations::new();
+        let id = Uuid::new_v4();
+
+        relations.add_sequence(id);
+        relations.add_sequence(id);
+
+        assert_eq!(relations.sequenced_after.len(), 1);
+    }
+
+    #[test]
+    fn test_set_assembly_parent() {
+        let mut relations = Relations::new();
+        let parent_id = Uuid::new_v4();
+
+        relations.set_assembly_parent(parent_id);
+
+        assert_eq!(relations.assembly_parent, Some(parent_id));
+        assert!(relations.hosted_by.is_none());
+    }
+
+    #[test]
+    fn test_set_host_and_set_assembly_parent_overwrite_previous_value() {
+        // Both are single-value slots (Option<Uuid>), not accumulating lists —
+        // a second call must replace, not be silently ignored or combined.
+        let mut relations = Relations::new();
+        let first_host = Uuid::new_v4();
+        let second_host = Uuid::new_v4();
+
+        relations.set_host(first_host);
+        relations.set_host(second_host);
+        assert_eq!(relations.hosted_by, Some(second_host));
+
+        let first_parent = Uuid::new_v4();
+        let second_parent = Uuid::new_v4();
+        relations.set_assembly_parent(first_parent);
+        relations.set_assembly_parent(second_parent);
+        assert_eq!(relations.assembly_parent, Some(second_parent));
+    }
+
+    #[test]
+    fn test_default_matches_new() {
+        assert_eq!(Relations::default(), Relations::new());
+    }
 }

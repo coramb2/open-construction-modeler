@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use crate::relations::Relations;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ConstructionObject {
     pub id: Uuid,
     pub name: String,
@@ -67,22 +67,51 @@ mod tests {
     }
 
     #[test]
-    fn test_serialization_round_trip() {
+    fn test_new_sets_expected_defaults() {
+        // These defaults are load-bearing: callers (IFC/DXF parsers, the CLI)
+        // rely on a freshly created object never needing explicit resets.
         let obj = ConstructionObject::new(
             "Level 1 Slab".to_string(),
             Trade::Structural,
-            None,
+            Some("IFCSLAB".to_string()),
             LodLevel::Lod300,
             "03 30 00".to_string(),
             "Phase 1".to_string(),
         );
 
+        assert_eq!(obj.status, ConstructionStatus::NotStarted);
+        assert_eq!(obj.approval_status, ApprovalStatus::Draft);
+        assert_eq!(obj.entity_type, Some("IFCSLAB".to_string()));
+        assert!(obj.assembly_parent.is_none());
+        assert!(obj.position.is_none());
+        assert!(obj.dimensions.is_none());
+        assert!(obj.matrix.is_none());
+        assert_eq!(obj.relations, Relations::new());
+    }
+
+    #[test]
+    fn test_serialization_round_trip() {
+        let mut obj = ConstructionObject::new(
+            "Level 1 Slab".to_string(),
+            Trade::Other("Landscaping".to_string()),
+            Some("IFCSLAB".to_string()),
+            LodLevel::Lod300,
+            "03 30 00".to_string(),
+            "Phase 1".to_string(),
+        );
+        // Populate every optional field so the round trip actually exercises
+        // them — a field silently failing to (de)serialize wouldn't show up
+        // if this only ever tested the all-None default state.
+        obj.position = Some([1.0, 2.0, 3.0]);
+        obj.dimensions = Some([4.0, 5.0, 6.0]);
+        obj.matrix = Some([0.0; 16]);
+        obj.geometry_ref = Some("ref-123".to_string());
+        obj.relations.add_dependency(Uuid::new_v4());
+
         let json = serde_json::to_string(&obj).expect("Failed to serialize");
         let restored: ConstructionObject = serde_json::from_str(&json).expect("Failed to deserialize");
 
-        assert_eq!(obj.id, restored.id);
-        assert_eq!(obj.name, restored.name);
-        assert_eq!(obj.csi_code, restored.csi_code);
+        assert_eq!(obj, restored);
     }
 }
 
