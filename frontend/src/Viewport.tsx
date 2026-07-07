@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { computeHighlightColor, remapIfcMatrixToThreeRowMajor } from './viewportUtils'
 
 interface ConstructionObject {
     id: string
@@ -27,8 +28,6 @@ const TRADE_COLORS: Record<string, number> = {
     Plumbing:   0x44CC66,       // green for pipes
     Civil: 0xA0785A,            // brown for site elements
 }
-
-const CLASH_COLOR = 0xff2222
 
 export default function Viewport({ objects, selectedId, onSelect, clashingIds }: ViewportProps) {
     const mountRef = useRef<HTMLDivElement>(null)
@@ -209,22 +208,14 @@ export default function Viewport({ objects, selectedId, onSelect, clashingIds }:
             const mesh = new THREE.Mesh(geo, mat)
 
             if (obj.matrix) {
-                // Apply T = C × M × C⁻¹ to remap IFC Z-up world matrix → Three.js Y-up.
-                // M is row-major: m[r*4+c]. Three.js Matrix4.set() is also row-major.
-                // C maps IFC→Three.js: X→X, Z→Y, Y→-Z
-                // T rows derived from C×M×C⁻¹:
-                //   row 0: [ m00,  m02, -m01,  m03 ]
-                //   row 1: [ m20,  m22, -m21,  m23 ]
-                //   row 2: [-m10, -m12,  m11, -m13 ]
-                //   row 3: [   0,    0,    0,    1  ]
-                const m = obj.matrix
+                // Remap IFC Z-up world matrix → Three.js Y-up (see viewportUtils.ts)
                 const threeMatrix = new THREE.Matrix4()
-                threeMatrix.set(
-                     m[0],  m[2], -m[1],  m[3],
-                     m[8], m[10],  -m[9], m[11],
-                    -m[4], -m[6],  m[5],  -m[7],
-                    0,     0,      0,      1
-                )
+                threeMatrix.set(...remapIfcMatrixToThreeRowMajor(obj.matrix) as [
+                    number, number, number, number,
+                    number, number, number, number,
+                    number, number, number, number,
+                    number, number, number, number,
+                ])
 
                 // Decompose into position + quaternion so we can add the h/2 centering offset.
                 // The matrix translation is the extrusion base; BoxGeometry is centered.
@@ -261,13 +252,7 @@ export default function Viewport({ objects, selectedId, onSelect, clashingIds }:
     useEffect(() => {
         Object.entries(meshMapRef.current).forEach(([id, mesh]) => {
             const mat = mesh.material as THREE.MeshLambertMaterial
-            if (clashingIds?.has(id)) {
-                mat.emissive.setHex(CLASH_COLOR)
-            } else if (id === selectedId) {
-                mat.emissive.setHex(0x334466)
-            } else {
-                mat.emissive.setHex(0x000000)
-            }
+            mat.emissive.setHex(computeHighlightColor(id, selectedId, clashingIds))
         })
     }, [selectedId, clashingIds])
 
