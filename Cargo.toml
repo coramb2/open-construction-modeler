@@ -2,6 +2,7 @@
 members = [
     "crates/engine",
     "crates/ifc",
+    "crates/civil",
     "crates/app",
     "src-tauri",
 ]

@@ -194,6 +194,12 @@ export default function Viewport({ objects, selectedId, onSelect, clashingIds }:
                 // ducts: long rectangular prisms
                 const l = obj.dimensions ? obj.dimensions[0] : 3.0
                 geo = new THREE.BoxGeometry(l, 0.3, 0.4)
+            } else if (obj.dimensions) {
+                // Unrecognized entity type (e.g. DXF civil linework) but real
+                // dimensions are known — render at actual scale rather than a
+                // fixed-size placeholder that would misrepresent its footprint.
+                const [w, d, h] = obj.dimensions
+                geo = new THREE.BoxGeometry(w, h, d)
             } else {
                 // default box
                 geo = new THREE.BoxGeometry(1.0, 2.0, 1.0)

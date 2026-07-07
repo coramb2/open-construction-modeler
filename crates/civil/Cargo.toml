@@ -1,0 +1,11 @@
+[package]
+name = "civil"
+version.workspace = true
+edition = "2021"
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+engine = { path = "../engine" }
+anyhow.workspace = true
+dxf = "0.6"
