@@ -203,4 +203,31 @@ mod tests {
         assert_eq!(objs.len(), 1);
         assert_eq!(objs[0].name, "Wall A");
     }
+
+    #[test]
+    fn test_rejects_path_traversal() {
+        let result = parse_ifc_file("../../etc/passwd.ifc");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_nonexistent_file_returns_err_not_panic() {
+        let result = parse_ifc_file("/tmp/ocm_definitely_does_not_exist_12345.ifc");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_garbage_content_does_not_panic() {
+        // Malformed/truncated IFC lines — must degrade to "no objects", never panic
+        let path = "/tmp/ocm_garbage.ifc";
+        let content = "\
+            not an ifc line at all\n\
+            #1=IFCWALL(\n\
+            #2=IFCWALLSTANDARDCASE('only','two','quotes\n\
+            \0\0\0 binary-looking junk \0\0\0\n\
+            IFCWALLSTANDARDCASE with no leading # or quotes;\n";
+        fs::write(path, content).unwrap();
+        let result = parse_ifc_file(path);
+        assert!(result.is_ok());
+    }
 }

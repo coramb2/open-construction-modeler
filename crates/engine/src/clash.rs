@@ -6,8 +6,13 @@ use crate::object::ConstructionObject;
 pub enum MissingGeometryReason {
     NoPosition,
     NoDimensions,
-    /// At least one dimension is zero — AABB has no volume, overlap math is meaningless
+    /// A dimension is zero or negative — AABB has no volume, or is inverted and
+    /// would silently corrupt the overlap math (min > max on that axis)
     DegenerateDimensions,
+    /// Position or dimension contains NaN/Infinity — likely corrupt upstream
+    /// geometry extraction. Must not be treated as "no clash": that would
+    /// silently hide a real collision instead of surfacing bad data.
+    NonFiniteGeometry,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -96,10 +101,16 @@ impl ClashDetector {
             (_, None) => return skipped(MissingGeometryReason::NoDimensions),
         };
 
-        if dims_a.iter().any(|&d| d == 0.0) {
+        if !pos_a.iter().all(|v| v.is_finite()) || !dims_a.iter().all(|v| v.is_finite())
+            || !pos_b.iter().all(|v| v.is_finite()) || !dims_b.iter().all(|v| v.is_finite())
+        {
+            return skipped(MissingGeometryReason::NonFiniteGeometry);
+        }
+
+        if dims_a.iter().any(|&d| d <= 0.0) {
             return skipped(MissingGeometryReason::DegenerateDimensions);
         }
-        if dims_b.iter().any(|&d| d == 0.0) {
+        if dims_b.iter().any(|&d| d <= 0.0) {
             return skipped(MissingGeometryReason::DegenerateDimensions);
         }
 
@@ -278,5 +289,84 @@ mod tests {
             results[0],
             ClashCheckResult::Skipped(SkippedResult { reason: MissingGeometryReason::DegenerateDimensions, .. })
         ));
+    }
+
+    #[test]
+    fn test_negative_dimensions_skipped_not_silently_inverted() {
+        // A negative dimension would flip min/max on that axis and corrupt the
+        // overlap math instead of erroring — must be rejected explicitly.
+        let a = make_obj([0.0, 0.0, 0.0], [2.0, 2.0, 2.0]);
+        let b = make_obj([0.0, 0.0, 0.0], [-2.0, 2.0, 2.0]);
+        let results = ClashDetector::run(&[&a, &b]);
+        assert_eq!(results.len(), 1);
+        assert!(matches!(
+            results[0],
+            ClashCheckResult::Skipped(SkippedResult { reason: MissingGeometryReason::DegenerateDimensions, .. })
+        ));
+    }
+
+    #[test]
+    fn test_nan_and_infinite_geometry_skipped_not_treated_as_no_clash() {
+        let a = make_obj([0.0, 0.0, 0.0], [2.0, 2.0, 2.0]);
+
+        let mut nan_pos = make_obj([1.0, 1.0, 1.0], [2.0, 2.0, 2.0]);
+        nan_pos.position = Some([f64::NAN, 0.0, 0.0]);
+        let results = ClashDetector::run(&[&a, &nan_pos]);
+        assert!(matches!(
+            results[0],
+            ClashCheckResult::Skipped(SkippedResult { reason: MissingGeometryReason::NonFiniteGeometry, .. })
+        ));
+
+        let mut inf_dims = make_obj([1.0, 1.0, 1.0], [2.0, 2.0, 2.0]);
+        inf_dims.dimensions = Some([f64::INFINITY, 2.0, 2.0]);
+        let results = ClashDetector::run(&[&a, &inf_dims]);
+        assert!(matches!(
+            results[0],
+            ClashCheckResult::Skipped(SkippedResult { reason: MissingGeometryReason::NonFiniteGeometry, .. })
+        ));
+    }
+
+    #[test]
+    fn test_full_containment_is_critical() {
+        // Small object entirely inside a large one — 100% of its own volume overlapped
+        let big = make_obj([0.0, 0.0, 0.0], [10.0, 10.0, 10.0]);
+        let small = make_obj([0.0, 0.0, 0.0], [1.0, 1.0, 1.0]);
+        let results = ClashDetector::run(&[&big, &small]);
+        assert_eq!(results.len(), 1);
+        if let ClashCheckResult::Clash(ref r) = results[0] {
+            assert!((r.overlap_volume - 1.0).abs() < 0.001);
+            assert_eq!(r.severity, ClashSeverity::Critical);
+        } else {
+            panic!("expected a clash");
+        }
+    }
+
+    #[test]
+    fn test_identical_objects_full_overlap() {
+        let a = make_obj([0.0, 0.0, 0.0], [2.0, 3.0, 4.0]);
+        let b = make_obj([0.0, 0.0, 0.0], [2.0, 3.0, 4.0]);
+        let results = ClashDetector::run(&[&a, &b]);
+        assert_eq!(results.len(), 1);
+        if let ClashCheckResult::Clash(ref r) = results[0] {
+            assert!((r.overlap_volume - 24.0).abs() < 0.001);
+            assert_eq!(r.severity, ClashSeverity::Critical);
+        } else {
+            panic!("expected a clash");
+        }
+    }
+
+    #[test]
+    fn test_large_object_set_completes_and_is_symmetric() {
+        // Perf/correctness sanity for the O(n^2) broad phase: 200 objects in a
+        // grid, each overlapping its immediate neighbor. Mainly guards against
+        // pairwise checks silently being skipped or duplicated as n grows.
+        let objects: Vec<ConstructionObject> = (0..200)
+            .map(|i| make_obj([i as f64 * 1.5, 0.0, 0.0], [2.0, 2.0, 2.0]))
+            .collect();
+        let refs: Vec<&ConstructionObject> = objects.iter().collect();
+        let results = ClashDetector::run(&refs);
+        let clash_count = results.iter().filter(|r| matches!(r, ClashCheckResult::Clash(_))).count();
+        // Each consecutive pair (i, i+1) overlaps (spacing 1.5 < combined half-widths 2.0) — 199 pairs
+        assert_eq!(clash_count, 199);
     }
 }

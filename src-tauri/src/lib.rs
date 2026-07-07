@@ -2,10 +2,17 @@ use engine::clash::ClashDetector;
 use engine::project::Project;
 use ifc::parser::parse_ifc_file;
 use tauri::command;
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard, PoisonError};
 
 pub struct AppState {
     pub project: Mutex<Option<Project>>,
+}
+
+/// A panic elsewhere while holding this lock must not brick every future
+/// command — the guarded state itself (Option<Project>) is never left
+/// invalid mid-mutation, so recovering the poisoned value is safe.
+fn lock_project(state: &AppState) -> MutexGuard<'_, Option<Project>> {
+    state.project.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
 #[command]
@@ -24,12 +31,12 @@ fn load_project(path: String, state: tauri::State<AppState>) -> Result<serde_jso
         for obj in objects {
             project.add_object(obj);
         }
-        *state.project.lock().unwrap() = Some(project.clone());
+        *lock_project(&state) = Some(project.clone());
         serde_json::to_value(&project).map_err(|e| e.to_string())
     } else {
         // load project from .ocm file
         let project = Project::load(&path).map_err(|e| e.to_string())?;
-        *state.project.lock().unwrap() = Some(project.clone());
+        *lock_project(&state) = Some(project.clone());
         serde_json::to_value(&project).map_err(|e| e.to_string())
     }
 
@@ -37,7 +44,7 @@ fn load_project(path: String, state: tauri::State<AppState>) -> Result<serde_jso
 
 #[command]
 fn run_clash(state: tauri::State<AppState>) -> Result<serde_json::Value, String> {
-    let guard = state.project.lock().unwrap();
+    let guard = lock_project(&state);
     let project = guard.as_ref().ok_or("No project loaded")?;
     let refs: Vec<&engine::object::ConstructionObject> = project.objects.values().collect();
     let results = ClashDetector::run(&refs);
