@@ -68,13 +68,6 @@ fn export_bcf(path: String, state: tauri::State<AppState>) -> Result<(), String>
     std::fs::write(&path, bytes).map_err(|e| e.to_string())
 }
 
-#[command]
-fn get_project_path() -> String {
-    "/home/cora/workspace/opencm/open-construction-modeler/project.ocm".to_string()
-}
-
-
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -92,7 +85,7 @@ pub fn run() {
         .manage(AppState {
             project: Mutex::new(None),
         })
-        .invoke_handler(tauri::generate_handler![load_project, get_project_path, run_clash, export_bcf])
+        .invoke_handler(tauri::generate_handler![load_project, run_clash, export_bcf])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
