@@ -25,3 +25,7 @@ engine = { path = "../crates/engine" }
 ifc = { path = "../crates/ifc" }
 civil = { path = "../crates/civil" }
 tauri-plugin-dialog = "2.6.0"
+
+[dev-dependencies]
+zip.workspace = true
+uuid.workspace = true
