@@ -114,4 +114,38 @@ mod tests {
         let result = Project::load(path);
         assert!(result.is_err());
     }
+
+    #[test]
+    fn test_get_object_missing_id_returns_none() {
+        let project = Project::new("Empty".to_string());
+        assert!(project.get_object(&Uuid::new_v4()).is_none());
+    }
+
+    #[test]
+    fn test_add_object_with_duplicate_id_overwrites() {
+        let mut project = Project::new("Test".to_string());
+        let mut obj = ConstructionObject::new(
+            "Original".to_string(),
+            Trade::Structural,
+            None,
+            LodLevel::Lod200,
+            String::new(),
+            "Phase 1".to_string(),
+        );
+        let id = obj.id;
+        project.add_object(obj.clone());
+
+        obj.name = "Replaced".to_string();
+        project.add_object(obj); // same id, different content
+
+        assert_eq!(project.objects.len(), 1, "duplicate id must replace, not accumulate");
+        assert_eq!(project.get_object(&id).unwrap().name, "Replaced");
+    }
+
+    #[test]
+    fn test_save_to_nonexistent_directory_returns_err_not_panic() {
+        let project = Project::new("Test".to_string());
+        let result = project.save("/tmp/ocm_dir_that_does_not_exist_12345/project.ocm");
+        assert!(result.is_err());
+    }
 }

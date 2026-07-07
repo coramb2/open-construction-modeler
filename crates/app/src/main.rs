@@ -124,7 +124,7 @@ fn main() -> Result<()> {
             let project = Project::load(&cli.project)?;
             let trade_parsed = parse_trade(&trade);
             let filtered: Vec<_> = project.objects.values()
-                .filter(|o| format!("{:?}", o.trade) == format!("{:?}", trade_parsed))
+                .filter(|o| o.trade == trade_parsed)
                 .collect();
             println!("{} object(s) for trade {:?}\n", filtered.len(), trade_parsed);
             for obj in filtered {
