@@ -10,3 +10,5 @@ serde.workspace = true
 uuid.workspace = true
 serde_json.workspace = true
 anyhow.workspace = true
+zip.workspace = true
+chrono.workspace = true
