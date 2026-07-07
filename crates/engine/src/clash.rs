@@ -24,6 +24,24 @@ pub struct SkippedResult {
     pub reason: MissingGeometryReason,
 }
 
+/// Only Hard is produced today (AABB overlap). Soft/Clearance need per-trade
+/// clearance buffers, which aren't modeled yet — kept here so the wire format
+/// doesn't change shape when that lands.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+pub enum ClashType {
+    Hard,
+}
+
+/// Ranked by how much of the smaller object's volume is consumed by the overlap,
+/// not raw overlap_volume — a 0.01m³ overlap is Critical for a small conduit but
+/// Minor for a slab.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+pub enum ClashSeverity {
+    Minor,
+    Major,
+    Critical,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct ClashResult {
     pub object_a: Uuid,
@@ -34,6 +52,8 @@ pub struct ClashResult {
     pub position: [f64; 3],
     /// Volume of the overlapping region in m³ — use for severity ranking
     pub overlap_volume: f64,
+    pub clash_type: ClashType,
+    pub severity: ClashSeverity,
 }
 
 pub struct ClashDetector;
@@ -108,6 +128,9 @@ impl ClashDetector {
                 overlap_start[2] + overlap[2] / 2.0,
             ];
             let overlap_volume = overlap[0] * overlap[1] * overlap[2];
+            let volume_a = dims_a[0] * dims_a[1] * dims_a[2];
+            let volume_b = dims_b[0] * dims_b[1] * dims_b[2];
+            let severity = Self::classify_severity(overlap_volume, min_f64(volume_a, volume_b));
 
             Some(ClashCheckResult::Clash(ClashResult {
                 object_a: a.id,
@@ -115,9 +138,25 @@ impl ClashDetector {
                 overlap,
                 position,
                 overlap_volume,
+                clash_type: ClashType::Hard,
+                severity,
             }))
         } else {
             None
+        }
+    }
+
+    fn classify_severity(overlap_volume: f64, smaller_volume: f64) -> ClashSeverity {
+        if smaller_volume <= 0.0 {
+            return ClashSeverity::Minor;
+        }
+        let penetration_ratio = overlap_volume / smaller_volume;
+        if penetration_ratio >= 0.5 {
+            ClashSeverity::Critical
+        } else if penetration_ratio >= 0.1 {
+            ClashSeverity::Major
+        } else {
+            ClashSeverity::Minor
         }
     }
 }
@@ -201,6 +240,32 @@ mod tests {
         // Only the clashing pair produces a result
         assert_eq!(results.len(), 1);
         assert!(matches!(results[0], ClashCheckResult::Clash(_)));
+    }
+
+    #[test]
+    fn test_severity_scales_with_penetration_ratio() {
+        // b is fully inside a's overlap region on x — deep penetration relative to b's own volume
+        let a = make_obj([0.0, 0.0, 0.0], [10.0, 10.0, 10.0]);
+        let b = make_obj([0.0, 0.0, 0.0], [1.0, 1.0, 1.0]);
+        let results = ClashDetector::run(&[&a, &b]);
+        assert_eq!(results.len(), 1);
+        if let ClashCheckResult::Clash(ref r) = results[0] {
+            assert_eq!(r.clash_type, ClashType::Hard);
+            assert_eq!(r.severity, ClashSeverity::Critical);
+        } else {
+            panic!("expected a clash");
+        }
+
+        // Barely-touching boxes: tiny overlap relative to either volume
+        let c = make_obj([0.0, 0.0, 0.0], [2.0, 2.0, 2.0]);
+        let d = make_obj([1.95, 0.0, 0.0], [2.0, 2.0, 2.0]);
+        let results = ClashDetector::run(&[&c, &d]);
+        assert_eq!(results.len(), 1);
+        if let ClashCheckResult::Clash(ref r) = results[0] {
+            assert_eq!(r.severity, ClashSeverity::Minor);
+        } else {
+            panic!("expected a clash");
+        }
     }
 
     #[test]
