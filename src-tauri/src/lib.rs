@@ -1,7 +1,9 @@
+use engine::bcf::export_clashes_to_bcf;
 use engine::clash::ClashDetector;
 use engine::project::Project;
 use ifc::parser::parse_ifc_file;
 use tauri::command;
+use std::path::{Component, Path};
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
 pub struct AppState {
@@ -52,6 +54,21 @@ fn run_clash(state: tauri::State<AppState>) -> Result<serde_json::Value, String>
 }
 
 #[command]
+fn export_bcf(path: String, state: tauri::State<AppState>) -> Result<(), String> {
+    if Path::new(&path).components().any(|c| c == Component::ParentDir) {
+        return Err(format!("Invalid output path: {path}"));
+    }
+
+    let guard = lock_project(&state);
+    let project = guard.as_ref().ok_or("No project loaded")?;
+    let refs: Vec<&engine::object::ConstructionObject> = project.objects.values().collect();
+    let results = ClashDetector::run(&refs);
+
+    let bytes = export_clashes_to_bcf(project, &results).map_err(|e| e.to_string())?;
+    std::fs::write(&path, bytes).map_err(|e| e.to_string())
+}
+
+#[command]
 fn get_project_path() -> String {
     "/home/cora/workspace/opencm/open-construction-modeler/project.ocm".to_string()
 }
@@ -75,7 +92,7 @@ pub fn run() {
         .manage(AppState {
             project: Mutex::new(None),
         })
-        .invoke_handler(tauri::generate_handler![load_project, get_project_path, run_clash])
+        .invoke_handler(tauri::generate_handler![load_project, get_project_path, run_clash, export_bcf])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

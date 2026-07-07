@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import Viewport from './Viewport'
-import { open } from '@tauri-apps/plugin-dialog'
+import { open, save } from '@tauri-apps/plugin-dialog'
 
 interface ConstructionObject {
   id: string
@@ -58,6 +58,7 @@ function App() {
   const [clashes, setClashes] = useState<ClashResult[]>([])
   const [clashPanelOpen, setClashPanelOpen] = useState(false)
   const [clashLoading, setClashLoading] = useState(false)
+  const [bcfExporting, setBcfExporting] = useState(false)
 
   const objects = project ? Object.values(project.objects) : []
 
@@ -94,6 +95,24 @@ function App() {
       setError(String(e))
     } finally {
       setClashLoading(false)
+    }
+  }
+
+  const exportBcf = async () => {
+    const path = await save({
+      defaultPath: 'clashes.bcfzip',
+      filters: [{ name: 'BCF 2.1 Archive', extensions: ['bcfzip'] }],
+    })
+    if (!path) return // User cancelled
+
+    setBcfExporting(true)
+    try {
+      await invoke('export_bcf', { path })
+      setError(null)
+    } catch (e) {
+      setError(String(e))
+    } finally {
+      setBcfExporting(false)
     }
   }
 
@@ -226,12 +245,21 @@ function App() {
               <h2 className="text-xs font-bold text-gray-300 uppercase tracking-widest">
                 Clashes ({clashes.length})
               </h2>
-              <button
-                onClick={() => setClashPanelOpen(false)}
-                className="text-xs text-gray-400 hover:text-gray-200"
-              >
-                Close
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={exportBcf}
+                  disabled={clashes.length === 0 || bcfExporting}
+                  className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {bcfExporting ? 'Exporting…' : 'Export BCF'}
+                </button>
+                <button
+                  onClick={() => setClashPanelOpen(false)}
+                  className="text-xs text-gray-400 hover:text-gray-200"
+                >
+                  Close
+                </button>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto">
               {clashes.length === 0 ? (

@@ -1,3 +1,4 @@
+pub mod bcf;
 pub mod clash;
 pub mod metadata;
 pub mod object;
