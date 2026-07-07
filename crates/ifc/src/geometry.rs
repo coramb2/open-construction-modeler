@@ -336,6 +336,25 @@ pub fn resolve_boolean_clipping(index: &IfcIndex, solid_id: u32) -> Option<([f64
     None
 }
 
+// Extracts [x_dim, y_dim, z_dim] from an IFCBOUNDINGBOX(Corner, XDim, YDim, ZDim)
+// entity. Used as a coarse fallback when the main body representation is a
+// shape we don't resolve precisely (Brep, MappedRepresentation/shared type
+// component, etc.) — real-world exports commonly carry a 'Box'/'BoundingBox'
+// shape representation alongside the unresolvable body specifically for this.
+pub fn resolve_bounding_box(index: &IfcIndex, id: u32) -> Option<[f64; 3]> {
+    let line = index.get(id)?;
+    if !line.contains("IFCBOUNDINGBOX") {
+        return None;
+    }
+    let x = get_float_arg(line, 1)?;
+    let y = get_float_arg(line, 2)?;
+    let z = get_float_arg(line, 3)?;
+    if x <= 0.0 || y <= 0.0 || z <= 0.0 {
+        return None;
+    }
+    Some([x, y, z])
+}
+
 // Main entry point - given a wall/slab entity line, resolve its geometry data
 pub fn extract_geometry(index: &IfcIndex, entity_line: &str) -> GeometryData {
     ////eprintln!("  entity arg6 raw: {:?}", get_ref_arg(entity_line, 6));
@@ -347,6 +366,10 @@ pub fn extract_geometry(index: &IfcIndex, entity_line: &str) -> GeometryData {
         .and_then(|prod_def_id| {
             ////eprintln!("  prod_def_id: {}", prod_def_id);
             let prod_def_line = index.get(prod_def_id)?;
+            // Coarse fallback if no representation yields precise geometry —
+            // collected during the same pass so it doesn't require a second
+            // walk of the representation list.
+            let mut bbox_fallback: Option<[f64; 3]> = None;
             for repr_id in get_list_arg(prod_def_line, 2) {
                 ////eprintln!("  repr_id: {}", repr_id);
                 if let Some(repr_line) = index.get(repr_id) {
@@ -363,11 +386,14 @@ pub fn extract_geometry(index: &IfcIndex, entity_line: &str) -> GeometryData {
                         if let Some(result) = resolve_boolean_clipping(index, geom_id) {
                             return Some(result);
                         }
+                        if bbox_fallback.is_none() {
+                            bbox_fallback = resolve_bounding_box(index, geom_id);
+                        }
                         //eprintln!("  -> neither matched");
                     }
                 }
             }
-            None
+            bbox_fallback.map(|dims| (dims, None))
         })
         .map(|d| (d, true))
         .unwrap_or((([1.5, 1.5, 1.0], None), false));
@@ -874,6 +900,93 @@ mod tests {
         assert!((geo.height - 3.5).abs() < 0.01, "height should be 3.5, got {}", geo.height);
         assert!((geo.placement.x - 2.0).abs() < 0.01, "x should be 2.0, got {}", geo.placement.x);
         assert!((geo.placement.y - 4.0).abs() < 0.01, "y should be 4.0, got {}", geo.placement.y);
+    }
+
+    #[test]
+    fn test_resolve_bounding_box() {
+        let path = "/tmp/ocm_bounding_box_test.ifc";
+        let content = "#50= IFCBOUNDINGBOX(#40,5.5,0.08,3.36);\n";
+        fs::write(path, content).unwrap();
+
+        let index = IfcIndex::from_file(path).unwrap();
+        let dims = resolve_bounding_box(&index, 50).unwrap();
+        assert!((dims[0] - 5.5).abs() < 0.001);
+        assert!((dims[1] - 0.08).abs() < 0.001);
+        assert!((dims[2] - 3.36).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_resolve_bounding_box_rejects_non_bounding_box_entity() {
+        let path = "/tmp/ocm_bounding_box_wrong_type.ifc";
+        let content = "#50= IFCCARTESIANPOINT((1.0,2.0,3.0));\n";
+        fs::write(path, content).unwrap();
+
+        let index = IfcIndex::from_file(path).unwrap();
+        assert!(resolve_bounding_box(&index, 50).is_none());
+    }
+
+    #[test]
+    fn test_resolve_bounding_box_rejects_degenerate_dims() {
+        let path = "/tmp/ocm_bounding_box_degenerate.ifc";
+        let content = "#50= IFCBOUNDINGBOX(#40,0.0,1.0,1.0);\n";
+        fs::write(path, content).unwrap();
+
+        let index = IfcIndex::from_file(path).unwrap();
+        assert!(resolve_bounding_box(&index, 50).is_none());
+    }
+
+    #[test]
+    fn test_extract_geometry_falls_back_to_bounding_box_when_body_unresolvable() {
+        // Mirrors a real-world ArchiCAD export pattern (IFCMEMBER roof rafters
+        // in the FZK-Haus sample file): the 'Body' representation is a
+        // MappedRepresentation this parser doesn't follow, but a 'Box'
+        // representation with an explicit IFCBOUNDINGBOX sits right next to
+        // it specifically to cover this case.
+        let path = "/tmp/ocm_extract_geometry_bbox_fallback.ifc";
+        let content = "\
+            #1= IFCCARTESIANPOINT((0.,0.,0.));\n\
+            #2= IFCAXIS2PLACEMENT3D(#1,$,$);\n\
+            #3= IFCLOCALPLACEMENT($,#2);\n\
+            #10= IFCMAPPEDITEM(#11,#12);\n\
+            #20= IFCSHAPEREPRESENTATION(#12,'Body','MappedRepresentation',(#10));\n\
+            #30= IFCBOUNDINGBOX(#31,5.5,0.08,3.36);\n\
+            #32= IFCSHAPEREPRESENTATION(#12,'Box','BoundingBox',(#30));\n\
+            #40= IFCPRODUCTDEFINITIONSHAPE($,$,(#20,#32));\n\
+            #50= IFCMEMBER('guid',#9,'Sparren-1',$,$,#3,#40,$);\n";
+        std::fs::write(path, content).unwrap();
+
+        let index = IfcIndex::from_file(path).unwrap();
+        let member_line = index.get(50).unwrap();
+        let geo = extract_geometry(&index, member_line);
+
+        assert!(geo.resolved, "bounding-box fallback should count as resolved");
+        assert!((geo.width - 5.5).abs() < 0.01, "width should be 5.5, got {}", geo.width);
+        assert!((geo.depth - 0.08).abs() < 0.01, "depth should be 0.08, got {}", geo.depth);
+        assert!((geo.height - 3.36).abs() < 0.01, "height should be 3.36, got {}", geo.height);
+    }
+
+    #[test]
+    fn test_extract_geometry_prefers_extrusion_over_bounding_box() {
+        // When both a precise SweptSolid body AND a coarser BoundingBox
+        // representation are present, the real geometry must win.
+        let path = "/tmp/ocm_extract_geometry_prefers_extrusion.ifc";
+        let content = "\
+            #1= IFCCARTESIANPOINT((0.,0.,0.));\n\
+            #2= IFCAXIS2PLACEMENT3D(#1,$,$);\n\
+            #3= IFCLOCALPLACEMENT($,#2);\n\
+            #4= IFCEXTRUDEDAREASOLID(#99,#98,#97,3.5);\n\
+            #5= IFCSHAPEREPRESENTATION(#12,'Body','SweptSolid',(#4));\n\
+            #6= IFCBOUNDINGBOX(#7,99.0,99.0,99.0);\n\
+            #8= IFCSHAPEREPRESENTATION(#12,'Box','BoundingBox',(#6));\n\
+            #9= IFCPRODUCTDEFINITIONSHAPE($,$,(#5,#8));\n\
+            #10= IFCWALLSTANDARDCASE('guid',#9,'Test Wall',$,$,#3,#9,$);\n";
+        std::fs::write(path, content).unwrap();
+
+        let index = IfcIndex::from_file(path).unwrap();
+        let wall_line = index.get(10).unwrap();
+        let geo = extract_geometry(&index, wall_line);
+
+        assert!((geo.height - 3.5).abs() < 0.01, "extrusion depth should win, got {}", geo.height);
     }
 
 }
