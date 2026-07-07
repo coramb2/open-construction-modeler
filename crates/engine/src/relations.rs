@@ -9,6 +9,12 @@ pub struct Relations {
     pub assembly_parent: Option<Uuid>,
 }
 
+impl Default for Relations {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Relations {
     pub fn new() -> Self {
         Self {

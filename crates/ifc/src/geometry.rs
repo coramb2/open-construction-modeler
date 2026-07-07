@@ -78,11 +78,7 @@ pub fn get_ref_arg(line: &str, arg_index: usize) -> Option<u32> {
     let args = split_args(args_str);
     let arg = args.get(arg_index)?.trim();
 
-    if arg.starts_with('#') {
-        arg[1..].parse::<u32>().ok()
-    } else {
-        None
-    }
+    arg.strip_prefix('#').and_then(|id| id.parse::<u32>().ok())
 }
 
 // Extracts a float value from a specific argument position
@@ -155,11 +151,7 @@ pub fn get_list_arg(line: &str, arg_index: usize) -> Vec<u32> {
         .iter()
         .filter_map(|item| {
             let trimmed = item.trim();
-            if trimmed.starts_with('#') {
-                trimmed[1..].parse::<u32>().ok()
-            } else {
-                None
-            }
+            trimmed.strip_prefix('#').and_then(|id| id.parse::<u32>().ok())
         })
         .collect()
 }
@@ -411,6 +403,9 @@ impl Mat4 {
     }
 
     // Multiply two 4x4 matrices (self * other)
+    // Index-based triple loop is the clearest way to express matrix
+    // multiplication here — an iterator rewrite would be harder to follow.
+    #[allow(clippy::needless_range_loop)]
     pub fn multiply(&self, other: &Mat4) -> Mat4 {
         let mut result = [[0.0f64; 4]; 4];
         for i in 0..4 {
@@ -563,10 +558,7 @@ pub fn resolve_world_matrix(index: &IfcIndex, placement_id: u32) -> Mat4 {
 
     // multiply matrices from root to local
     matrices.reverse();
-    let result = matrices.into_iter().fold(Mat4::identity(), |acc, m| acc.multiply(&m));
-    //eprintln!("  [world_matrix] final translation: ({},{},{})",
-        //result.data[0][3], result.data[1][3], result.data[2][3]);
-    result
+    matrices.into_iter().fold(Mat4::identity(), |acc, m| acc.multiply(&m))
 }
 
 // Extract bounding box from IFCTRIANGULATEDFACESET
