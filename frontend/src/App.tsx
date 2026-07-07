@@ -24,11 +24,40 @@ interface Project {
   objects: Record<string, ConstructionObject>
 }
 
+interface ClashResult {
+  type: 'Clash'
+  object_a: string
+  object_b: string
+  overlap: [number, number, number]
+  position: [number, number, number]
+  overlap_volume: number
+  clash_type: 'Hard'
+  severity: 'Minor' | 'Major' | 'Critical'
+}
+
+interface SkippedResult {
+  type: 'Skipped'
+  object_a: string
+  object_b: string
+  reason: 'NoPosition' | 'NoDimensions' | 'DegenerateDimensions'
+}
+
+type ClashCheckResult = ClashResult | SkippedResult
+
+const SEVERITY_COLOR: Record<ClashResult['severity'], string> = {
+  Critical: 'text-red-400',
+  Major: 'text-orange-400',
+  Minor: 'text-yellow-400',
+}
+
 function App() {
   const [project, setProject] = useState<Project | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [hiddenTrades, setHiddenTrades] = useState<Set<string>>(new Set())
+  const [clashes, setClashes] = useState<ClashResult[]>([])
+  const [clashPanelOpen, setClashPanelOpen] = useState(false)
+  const [clashLoading, setClashLoading] = useState(false)
 
   const objects = project ? Object.values(project.objects) : []
 
@@ -49,6 +78,24 @@ function App() {
   const selectedObject = selectedId && project
     ? project.objects[selectedId]
     : null
+
+  const clashingIds = new Set(clashes.flatMap(c => [c.object_a, c.object_b]))
+
+  const objectName = (id: string) => project?.objects[id]?.name ?? id.slice(0, 8)
+
+  const runClash = async () => {
+    setClashLoading(true)
+    try {
+      const results = await invoke<ClashCheckResult[]>('run_clash')
+      setClashes(results.filter((r): r is ClashResult => r.type === 'Clash'))
+      setClashPanelOpen(true)
+      setError(null)
+    } catch (e) {
+      setError(String(e))
+    } finally {
+      setClashLoading(false)
+    }
+  }
 
   const loadProject = async () => {
     try {
@@ -140,23 +187,80 @@ function App() {
           )}
         </div>
 
-        <div className="p-3 border-t border-gray-700">
+        <div className="p-3 border-t border-gray-700 space-y-2">
           <button
             onClick={loadProject}
             className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs py-2 px-3 rounded"
           >
             Load Project
           </button>
+          <button
+            onClick={runClash}
+            disabled={!project || clashLoading}
+            className="w-full bg-gray-700 hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs py-2 px-3 rounded flex items-center justify-center gap-2"
+          >
+            {clashLoading ? 'Running Clash Detection…' : 'Run Clash Detection'}
+            {clashes.length > 0 && !clashLoading && (
+              <span className="bg-red-600 text-white rounded-full px-1.5 py-0.5 text-[10px] leading-none">
+                {clashes.length}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Center — Three.js Viewport */}
-      <div className="flex-1">
-        <Viewport 
-          objects={objects} 
-          selectedId={selectedId} 
-          onSelect={setSelectedId}
-        />
+      {/* Center — Three.js Viewport + Clash Panel */}
+      <div className="flex-1 flex flex-col">
+        <div className="flex-1 min-h-0">
+          <Viewport
+            objects={objects}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            clashingIds={clashingIds}
+          />
+        </div>
+
+        {clashPanelOpen && (
+          <div className="h-56 bg-gray-800 border-t border-gray-700 flex flex-col">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-gray-700">
+              <h2 className="text-xs font-bold text-gray-300 uppercase tracking-widest">
+                Clashes ({clashes.length})
+              </h2>
+              <button
+                onClick={() => setClashPanelOpen(false)}
+                className="text-xs text-gray-400 hover:text-gray-200"
+              >
+                Close
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {clashes.length === 0 ? (
+                <div className="text-gray-500 text-xs p-3">No clashes detected.</div>
+              ) : (
+                clashes
+                  .slice()
+                  .sort((a, b) => b.overlap_volume - a.overlap_volume)
+                  .map((c, i) => (
+                    <div
+                      key={`${c.object_a}-${c.object_b}-${i}`}
+                      onClick={() => setSelectedId(c.object_a)}
+                      className="px-3 py-2 text-xs border-b border-gray-700/50 hover:bg-gray-700 cursor-pointer flex items-center justify-between"
+                    >
+                      <div className="truncate">
+                        <span className="text-gray-200">{objectName(c.object_a)}</span>
+                        <span className="text-gray-500"> × </span>
+                        <span className="text-gray-200">{objectName(c.object_b)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 ml-2">
+                        <span className={SEVERITY_COLOR[c.severity]}>{c.severity}</span>
+                        <span className="text-gray-500">{c.overlap_volume.toFixed(3)} m³</span>
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Right Panel — Inspector */}

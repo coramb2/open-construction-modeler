@@ -16,6 +16,7 @@ interface ViewportProps {
     objects: ConstructionObject[]
     selectedId: string | null
     onSelect: (id: string) => void
+    clashingIds?: Set<string>
 }
 
 const TRADE_COLORS: Record<string, number> = {
@@ -27,7 +28,9 @@ const TRADE_COLORS: Record<string, number> = {
     Civil: 0xA0785A,            // brown for site elements
 }
 
-export default function Viewport({ objects, selectedId, onSelect }: ViewportProps) {
+const CLASH_COLOR = 0xff2222
+
+export default function Viewport({ objects, selectedId, onSelect, clashingIds }: ViewportProps) {
     const mountRef = useRef<HTMLDivElement>(null)
     const sceneRef = useRef<THREE.Scene | null>(null)
     const meshMapRef = useRef<Record<string, THREE.Mesh>>({})
@@ -140,7 +143,7 @@ export default function Viewport({ objects, selectedId, onSelect }: ViewportProp
 
         // Updating for shape-awareness: use entity_type to determine geometry type
         // In-progress
-        objects.forEach((obj, i) => {
+        objects.forEach((obj) => {
             const color = TRADE_COLORS[obj.trade] ?? 0x888888
             const entity = obj.entity_type ?? ''
 
@@ -248,13 +251,19 @@ export default function Viewport({ objects, selectedId, onSelect }: ViewportProp
 
     }, [objects])
 
-    // Highlight selected object
+    // Highlight selected + clashing objects — clash red takes priority over selection blue
     useEffect(() => {
         Object.entries(meshMapRef.current).forEach(([id, mesh]) => {
-        const mat = mesh.material as THREE.MeshLambertMaterial
-        mat.emissive.setHex(id === selectedId ? 0x334466 : 0x000000)
+            const mat = mesh.material as THREE.MeshLambertMaterial
+            if (clashingIds?.has(id)) {
+                mat.emissive.setHex(CLASH_COLOR)
+            } else if (id === selectedId) {
+                mat.emissive.setHex(0x334466)
+            } else {
+                mat.emissive.setHex(0x000000)
+            }
         })
-    }, [selectedId])
+    }, [selectedId, clashingIds])
 
     return <div ref={mountRef} className="w-full h-full" />
 }

@@ -6,7 +6,7 @@ use anyhow::Result;
 use std::fs;
 use std::path::Path;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Project {
     pub id: Uuid,
     pub name: String,
@@ -93,5 +93,25 @@ mod tests {
         assert_eq!(project.name, loaded.name);
         assert_eq!(project.id, loaded.id);
         assert_eq!(project.objects.len(), loaded.objects.len());
+    }
+
+    #[test]
+    fn test_load_rejects_path_traversal() {
+        let result = Project::load("../../etc/passwd");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_load_nonexistent_file_returns_err_not_panic() {
+        let result = Project::load("/tmp/ocm_definitely_does_not_exist_12345.ocm");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_load_malformed_json_returns_err_not_panic() {
+        let path = "/tmp/ocm_malformed.ocm";
+        fs::write(path, "{ this is not valid json ][").unwrap();
+        let result = Project::load(path);
+        assert!(result.is_err());
     }
 }
