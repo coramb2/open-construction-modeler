@@ -131,8 +131,7 @@ describe('App — runClash', () => {
             },
             {
                 type: 'Skipped',
-                object_a: 'id-a',
-                object_b: 'id-b',
+                object: 'id-a',
                 reason: 'NoPosition',
             },
         ])
