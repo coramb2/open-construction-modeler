@@ -5,7 +5,7 @@ use engine::object::ConstructionObject;
 use engine::project::Project;
 use ifc::parser::parse_ifc_file;
 use tauri::command;
-use std::path::{Component, Path};
+use std::path::Path;
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
 pub struct AppState {
@@ -75,9 +75,7 @@ fn run_clash(state: tauri::State<AppState>) -> Result<serde_json::Value, String>
 }
 
 fn export_bcf_impl(path: &str, state: &AppState) -> Result<Vec<u8>, String> {
-    if Path::new(path).components().any(|c| c == Component::ParentDir) {
-        return Err(format!("Invalid output path: {path}"));
-    }
+    engine::io::reject_path_traversal(Path::new(path)).map_err(|e| e.to_string())?;
 
     let guard = lock_project(state);
     let project = guard.as_ref().ok_or("No project loaded")?;
