@@ -5,6 +5,11 @@ trade contractors, and construction technology teams.
 Built because existing tools like Revit and Navisworks were designed for 
 architects — not for the people who actually build things.
 
+It started as a labor of love and out of plain necessity: the coordination
+problems it targets — clashes, lost coordinate systems, the same model drifting
+out of alignment as it's handed between trades — are a daily reality on real
+jobs, not a hypothetical.
+
 ---
 
 ## What This Is
@@ -15,12 +20,16 @@ A two-part ecosystem:
 A fast, construction-centric 3D modeling engine with first-class support for 
 trade coordination, assembly modeling, clash detection, and construction sequencing.
 
-**Part 2 — Collaboration Platform** (`web/`, early development)  
-A web-based hub for publishing and browsing construction models — from
-finished projects down to individual made items (a chair, a bracket,
-anything that didn't exist before someone built it). Think GitHub, for
-things that get built. Next.js + Supabase, deployed to Vercel — see
-[web/SETUP.md](web/SETUP.md).
+**Part 2 — Collaboration Platform** (`web/`, active development)  
+A web hub that brings the **open-source model** — fork, reuse, and contribute
+back — to construction. Not just a place to *host* models, but a place where a
+published project, assembly, or made item (a chair, a bracket, anything that
+didn't exist before someone built it) can be **forked**, adapted, and its
+improvements **proposed back** to the original. It's GitHub's *workflow* applied
+to things that get built, not just its storage — see
+[Bringing the Open-Source Model to Construction](#bringing-the-open-source-model-to-construction)
+below for how fork/diff/merge map onto construction files. Next.js + Supabase,
+deployed to Vercel — see [web/SETUP.md](web/SETUP.md).
 
 ---
 
@@ -32,6 +41,65 @@ things that get built. Next.js + Supabase, deployed to Vercel — see
 - Workflows designed for architects, not contractors
 
 We're building for the people doing VDC coordination every day.
+
+---
+
+## Bringing the Open-Source Model to Construction
+
+Software got radically more reusable when GitHub made *forking* the default:
+find something close to what you need, copy it with a link back to the original,
+change it, and offer your changes upstream. Construction has no equivalent.
+Models are locked in proprietary formats, reuse is rare, and the same project
+handed to multiple trades drifts out of sync.
+
+Part 2 is aimed squarely at that. Three problems it's built to solve:
+
+**1. Reuse.** Publish a project — or a single assembly or made item — and let
+others fork it, build on it, and attribute it back. Lineage is tracked, so you
+can see what a design descended from and what's been built from it.
+
+**2. Coordinate & alignment drift.** The most common failure when a project is
+federated out to multiple disciplines: the shared coordinate system slips.
+Project base point / survey point gets lost, units flip (mm ↔ m ↔ ft), true
+north rotates, or the `IFCLOCALPLACEMENT` / `IFCMAPCONVERSION` chain is misread
+on re-import — and models that should overlay perfectly end up offset by
+hundreds of feet. Because IFC gives every element a stable GUID and a
+deterministic placement chain (files carry hard-coded, machine-readable ways to
+identify and locate every object), we can resolve each object to world
+coordinates and **detect drift directly** — either as a diff before you merge,
+or as a standalone "did anything misalign?" check on a single file.
+
+**3. File compatibility.** Revit → AutoCAD → IFC round-trips silently lose
+fidelity. The Rust engine in Part 1 already parses IFC/DXF into a normalized,
+GUID-anchored object model — the same normalization layer that makes diffing,
+alignment-checking, and merging possible in the first place. Leaning on that
+engine on the backend (rather than treating uploads as opaque blobs) is the
+backbone of a seamless file transition, and the piece most of the remaining
+work depends on.
+
+### How fork / diff / merge map onto construction files
+
+Text merges work because git normalizes everything to lines. Construction files
+don't diff as text — but normalized, GUID-identified objects do:
+
+- **Fork** — an independent, linked copy of a repo; lineage shown as
+  "forked from …".
+- **Diff before merge** — a *semantic + spatial* diff: objects added, removed,
+  or modified, plus any global coordinate offset / rotation / unit mismatch
+  between the two versions.
+- **Merge** — reconciled at the object and property level, not the byte level.
+  Construction work is already partitioned by discipline (architectural /
+  structural / MEP each own different objects), so most merges are additive with
+  no conflict; genuine same-object conflicts fall to a human.
+- **Validate** — a merged (or freshly uploaded) model is run through the
+  existing clash-detection engine and the alignment check, so a merge that is
+  data-clean but physically invalid — or simply misaligned — is caught before it
+  lands.
+
+> **Status:** the fork / diff / merge / alignment features are the design
+> direction for Part 2 and are **not built yet**. The parsing, geometry
+> resolution, world-coordinate placement, and clash detection they depend on
+> already exist and are tested in Part 1.
 
 ---
 
@@ -98,21 +166,23 @@ synthetic test fixtures).
   separately-linked vertex entities), blocks/inserts, splines, or text —
   only `Line`, `LwPolyline`, `Circle`, and `Point`
 
-**Web platform (`web/`) — just started:**
-- Next.js app scaffolded, deployed target is Vercel
-- Supabase backend: Postgres schema (profiles/items/item_images) with Row
-  Level Security on every table, storage buckets for model files + images
-- GitHub OAuth sign-in (email/magic-link auth not added yet)
-- 13 passing tests (Vitest) — includes a regression test for an
-  open-redirect bypass found and fixed during review (a naive
-  `next.startsWith('/')` check doesn't block `//evil.example`, which
-  browsers treat as a protocol-relative URL)
-- Not yet built: the browse feed, publishing flow, item detail/viewer
-  pages, and public profile pages — auth + schema only so far
-- The in-browser 3D viewer (once built) will support glTF/GLB only —
-  IFC/DXF parsing lives in Rust on the desktop app and hasn't been ported
-  to the browser; other file types will be downloadable but not
-  previewable
+**Web platform (`web/`) — active development:**
+- Next.js app (deployed target: Vercel) backed by Supabase — Postgres schema
+  (profiles/items/item_images) with Row Level Security on every table, and
+  storage buckets for model files + images
+- Auth via GitHub OAuth (email/magic-link not added yet)
+- Built so far: browse feed, publishing/upload flow, item detail page with an
+  in-browser glTF/GLB viewer, and public profile pages
+- 31 passing tests (Vitest), including a regression test for an open-redirect
+  bypass found and fixed during review (a naive `next.startsWith('/')` check
+  doesn't block `//evil.example`, which browsers treat as a protocol-relative
+  URL)
+- The in-browser viewer supports glTF/GLB only — IFC/DXF parsing lives in Rust
+  on the desktop app and hasn't been ported to the browser (WASM) yet; other
+  file types are downloadable but not previewable
+- Not yet built: fork/lineage, semantic + coordinate diff, merge, and the
+  alignment-integrity check — see
+  [Bringing the Open-Source Model to Construction](#bringing-the-open-source-model-to-construction)
 
 **In Progress / Not Started:**
 - Procore integration (needs a developer OAuth app — blocked on credentials)
@@ -182,7 +252,12 @@ cargo tauri dev
 - [ ] 5D cost integration
 - [ ] Python scripting layer
 - [ ] Lifecycle / change-tracking audit trail
-- [ ] Web collaboration platform
+- [x] Web collaboration platform — publish & browse feed, item viewer, profiles
+- [ ] Fork & lineage for published models
+- [ ] Semantic + coordinate diff (drift / offset / unit-mismatch detection)
+- [ ] Alignment-integrity check (standalone + pre-merge)
+- [ ] Object/property-level merge, validated by clash detection
+- [ ] In-browser IFC/DXF parsing (Rust → WASM)
 
 See [docs/OCM_Technical_Roadmap_v2.md](docs/OCM_Technical_Roadmap_v2.md) for
 the full sprint-by-sprint plan.
