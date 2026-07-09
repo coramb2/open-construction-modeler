@@ -15,9 +15,12 @@ A two-part ecosystem:
 A fast, construction-centric 3D modeling engine with first-class support for 
 trade coordination, assembly modeling, clash detection, and construction sequencing.
 
-**Part 2 — Collaboration Platform** (coming soon)  
-A web-based hub for model sharing, VDC knowledge, scripts, and community — 
-think GitHub + StackOverflow for construction modeling.
+**Part 2 — Collaboration Platform** (`web/`, early development)  
+A web-based hub for publishing and browsing construction models — from
+finished projects down to individual made items (a chair, a bracket,
+anything that didn't exist before someone built it). Think GitHub, for
+things that get built. Next.js + Supabase, deployed to Vercel — see
+[web/SETUP.md](web/SETUP.md).
 
 ---
 
@@ -34,7 +37,7 @@ We're building for the people doing VDC coordination every day.
 
 ## Current Status
 
-*Last updated: 2026-07-08*
+*Last updated: 2026-07-09*
 
 Active development — geometry pipeline, clash detection, and BCF export all
 working end-to-end, validated against a real building model (not just
@@ -95,12 +98,27 @@ synthetic test fixtures).
   separately-linked vertex entities), blocks/inserts, splines, or text —
   only `Line`, `LwPolyline`, `Circle`, and `Point`
 
+**Web platform (`web/`) — just started:**
+- Next.js app scaffolded, deployed target is Vercel
+- Supabase backend: Postgres schema (profiles/items/item_images) with Row
+  Level Security on every table, storage buckets for model files + images
+- GitHub OAuth sign-in (email/magic-link auth not added yet)
+- 13 passing tests (Vitest) — includes a regression test for an
+  open-redirect bypass found and fixed during review (a naive
+  `next.startsWith('/')` check doesn't block `//evil.example`, which
+  browsers treat as a protocol-relative URL)
+- Not yet built: the browse feed, publishing flow, item detail/viewer
+  pages, and public profile pages — auth + schema only so far
+- The in-browser 3D viewer (once built) will support glTF/GLB only —
+  IFC/DXF parsing lives in Rust on the desktop app and hasn't been ported
+  to the browser; other file types will be downloadable but not
+  previewable
+
 **In Progress / Not Started:**
 - Procore integration (needs a developer OAuth app — blocked on credentials)
 - 4D schedule integration
 - 5D cost integration
 - Python scripting layer (PyO3)
-- Web collaboration platform
 
 ---
 
@@ -113,8 +131,9 @@ open-construction-modeler/
 │   ├── ifc/        — IFC parser, geometry extraction, world matrix
 │   ├── civil/      — DXF parser for civil/site data
 │   └── app/        — CLI application binary
-├── frontend/       — React + TypeScript + Three.js viewport
-└── src-tauri/      — Tauri 2.0 desktop shell + Rust command bridge
+├── frontend/       — React + TypeScript + Three.js viewport (desktop app)
+├── src-tauri/      — Tauri 2.0 desktop shell + Rust command bridge
+└── web/            — Next.js collaboration platform (Part 2), see web/SETUP.md
 ```
 
 **Language:** Rust + TypeScript  

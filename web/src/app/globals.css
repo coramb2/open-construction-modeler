@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Dark theme is applied directly via Tailwind utility classes on <body>
+   in layout.tsx (bg-gray-900/text-gray-100), matching the desktop app's
+   look — no separate CSS variables needed here. */
