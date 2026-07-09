@@ -34,7 +34,7 @@ We're building for the people doing VDC coordination every day.
 
 ## Current Status
 
-*Last updated: 2026-07-07*
+*Last updated: 2026-07-08*
 
 Active development — geometry pipeline, clash detection, and BCF export all
 working end-to-end, validated against a real building model (not just
@@ -57,10 +57,13 @@ synthetic test fixtures).
   classified as `Trade::Civil`, with `$INSUNITS` unit-scale detection —
   true binary DWG is a proprietary format with no legal open parser, same
   limitation every other open BIM/CAD tool has
-- Clash detection engine: AABB broad-phase pairwise checking, severity
-  ranking (Minor/Major/Critical by penetration ratio), explicit skip
-  reasons instead of silently dropping bad geometry (missing position,
-  missing dimensions, degenerate or non-finite geometry)
+- Clash detection engine: AABB broad-phase with a uniform spatial-hash grid
+  so it scales to large models (near-linear on spatially distributed input
+  instead of the naive O(n²) all-pairs scan — verified identical to brute
+  force by a randomized parity test), severity ranking (Minor/Major/Critical
+  by penetration ratio), explicit per-object skip reasons instead of silently
+  dropping bad geometry (missing position, missing dimensions, degenerate or
+  non-finite geometry)
 - BCF 2.1 issue export — clash results export as a `.bcfzip` archive
   readable by Revit, Navisworks, and Procore, with XML-escaped object names
 - Tauri 2.0 desktop app with Three.js WebGL viewport
@@ -71,10 +74,14 @@ synthetic test fixtures).
 - Native file open dialog (.ifc, .dxf, and .ocm) and save dialog (BCF export)
 - Trade filter toggles
 - Restrictive Tauri CSP (was previously disabled)
+- DoS-hardened file input: every untrusted parser (IFC, DXF, `.ocm`) reads
+  through a single bounded reader that caps input size (guarding against a
+  malformed/hostile multi-gigabyte file exhausting memory) and rejects path
+  traversal
 - CI: full workspace test suite (including the Tauri backend, which used to
   be untested), `cargo clippy -D warnings`, `cargo audit`, frontend lint +
   typecheck + build + `npm audit`
-- 63 passing Rust unit tests + frontend typecheck/lint clean
+- 107 passing Rust unit tests + 19 frontend tests, typecheck/lint clean
 
 **Known limitations:**
 - Geometry resolution still falls back to a coarse/placeholder box for

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use anyhow::Result;
-use std::fs;
+use engine::io::read_to_string_bounded;
 use std::path::Path;
 
 // A parsed IFC file indexed by entity ID
@@ -12,12 +12,16 @@ pub struct IfcIndex {
 
 impl IfcIndex {
     pub fn from_file(path: &str) -> Result<Self> {
-        // Prevent path traversal attacks by rejecting paths containing '..'.
-        let path = Path::new(path);
-        if path.components().any(|c| c == std::path::Component::ParentDir) {
-            return Err(anyhow::anyhow!("Invalid input: {}", path.display()));
-        }
-        let contents = fs::read_to_string(path)?;
+        // Reject path traversal and cap the read so a hostile/corrupt IFC file
+        // can't exhaust memory (see engine::io).
+        let contents = read_to_string_bounded(Path::new(path))?;
+        Ok(Self::from_contents(&contents))
+    }
+
+    /// Builds the entity index from already-read file contents. Kept separate
+    /// from [`from_file`] so the parser can read the file exactly once and
+    /// share the buffer with the entity scan instead of reading it twice.
+    pub fn from_contents(contents: &str) -> Self {
         let mut lines = HashMap::new();
 
         for line in contents.lines() {
@@ -32,7 +36,7 @@ impl IfcIndex {
                 }
             }
         }
-        Ok(Self { lines })
+        Self { lines }
     }
 
     pub fn get(&self, id: u32) -> Option<&String> {
@@ -679,6 +683,7 @@ pub fn resolve_triangulated_faceset(index: &IfcIndex, faceset_id: u32) -> Option
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
 
     #[test]
     fn test_index_parses_entity_ids() {

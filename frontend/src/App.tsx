@@ -37,9 +37,8 @@ interface ClashResult {
 
 interface SkippedResult {
   type: 'Skipped'
-  object_a: string
-  object_b: string
-  reason: 'NoPosition' | 'NoDimensions' | 'DegenerateDimensions'
+  object: string
+  reason: 'NoPosition' | 'NoDimensions' | 'DegenerateDimensions' | 'NonFiniteGeometry'
 }
 
 type ClashCheckResult = ClashResult | SkippedResult

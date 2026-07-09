@@ -1,7 +1,7 @@
 use anyhow::Result;
+use engine::io::read_to_string_bounded;
 use engine::metadata::{LodLevel, Trade};
 use engine::object::ConstructionObject;
-use std::fs;
 use std::path::Path;
 use crate::geometry::{IfcIndex, extract_geometry, get_entity_type, get_ref_arg, resolve_world_matrix, detect_length_unit};
 
@@ -57,13 +57,11 @@ fn is_noise_object(name: &str) -> bool {
 }
 
 pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
-    // Prevent path traversal attacks by rejecting paths containing '..'.
-    let path_obj = Path::new(path);
-    if path_obj.components().any(|c| c == std::path::Component::ParentDir) {
-        return Err(anyhow::anyhow!("Invalid input: {}", path_obj.display()));
-    }
-    let contents = fs::read_to_string(path_obj)?;
-    let index = IfcIndex::from_file(path_obj.to_str().unwrap())?;    
+    // Read the file exactly once, with path-traversal and size-cap guards
+    // (see engine::io), then build the entity index from the same buffer
+    // instead of reading the file a second time.
+    let contents = read_to_string_bounded(Path::new(path))?;
+    let index = IfcIndex::from_contents(&contents);
     let unit_scale = detect_length_unit(&index);
     let mut objects = Vec::new();
 
@@ -153,6 +151,7 @@ pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
 
     #[test]
     fn test_parse_empty_file() {

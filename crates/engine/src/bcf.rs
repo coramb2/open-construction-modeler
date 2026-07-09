@@ -208,8 +208,7 @@ mod tests {
     fn test_skipped_results_produce_no_topics() {
         let (project, ids) = make_project_with_objects(&["Wall A", "Duct B"]);
         let results = vec![ClashCheckResult::Skipped(SkippedResult {
-            object_a: ids[0],
-            object_b: ids[1],
+            object: ids[0],
             reason: MissingGeometryReason::NoPosition,
         })];
 

@@ -2,9 +2,10 @@ use anyhow::Result;
 use dxf::entities::EntityType;
 use dxf::enums::Units;
 use dxf::Drawing;
+use engine::io::guard_input_file;
 use engine::metadata::{LodLevel, Trade};
 use engine::object::ConstructionObject;
-use std::path::{Component, Path};
+use std::path::Path;
 
 /// Linework (lines, polylines) has no real cross-section in a 2D DXF —
 /// give it a nominal thickness so clash-detection AABBs have volume instead
@@ -83,10 +84,10 @@ fn scale_point(p: &dxf::Point, scale: f64) -> [f64; 3] {
 /// Other entity types (text, dimensions, blocks/inserts, splines, 3D solids)
 /// are skipped rather than approximated.
 pub fn parse_dxf_file(path: &str) -> Result<Vec<ConstructionObject>> {
+    // Reject path traversal and refuse oversized files before the DXF loader
+    // (which reads the file internally) allocates anything — see engine::io.
     let path_obj = Path::new(path);
-    if path_obj.components().any(|c| c == Component::ParentDir) {
-        return Err(anyhow::anyhow!("Invalid input: {}", path_obj.display()));
-    }
+    guard_input_file(path_obj)?;
 
     let drawing = Drawing::load_file(path_obj)
         .map_err(|e| anyhow::anyhow!("Failed to parse DXF file: {e}"))?;
