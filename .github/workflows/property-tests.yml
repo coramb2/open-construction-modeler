@@ -1,0 +1,27 @@
+name: Property Tests & Mutation Preparation
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  proptest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Run proptest-based tests (example)
+        run: |
+          cd crates/engine
+          cargo test --test proptest_examples -- --nocapture
