@@ -1,0 +1,77 @@
+name: Release Desktop App
+
+# Builds the Tauri desktop installer in the cloud and attaches it to a GitHub
+# Release — no local toolchain or commands needed. Trigger it either by:
+#   • Actions tab → "Release Desktop App" → "Run workflow" (pick a version), or
+#   • pushing a tag like `v0.1.0`.
+# The result is a DRAFT release with the installer(s) attached; review it and
+# hit "Publish" to get a permanent download link to share.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag / version (e.g. v0.1.0)'
+        required: true
+        default: 'v0.1.0'
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write # needed to create the release and upload installers
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows installer (.msi + .exe). Add `macos-latest` / `ubuntu-22.04`
+          # entries here later to ship those platforms too — macOS needs signing
+          # for a clean install, and Linux needs webkit2gtk apt deps.
+          - platform: windows-latest
+            args: ''
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+
+      # The desktop shell bundles the Vite app in frontend/. Tauri's
+      # beforeBuildCommand rebuilds it (with cwd pinned to ../frontend), but the
+      # deps must be installed first — tauri-action won't do it for a nested
+      # frontend package.
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build installer and draft release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.event.inputs.tag || github.ref_name }}
+          releaseName: 'Open Construction Modeler ${{ github.event.inputs.tag || github.ref_name }}'
+          releaseBody: |
+            Desktop installer for the Open Construction Modeler.
+
+            The app is not code-signed yet, so Windows SmartScreen will show an
+            "unknown publisher" prompt — click **More info → Run anyway** to
+            install.
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
