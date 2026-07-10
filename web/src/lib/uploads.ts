@@ -50,14 +50,37 @@ export function validateUploadFile(
   return { ok: true }
 }
 
-/** Builds the {user_id}/{item_id}/{kind}.{ext} storage path the RLS upload
- * policies expect (see supabase/migrations/0001_init.sql). */
+/** Builds the {user_id}/{folder}/{kind}.{ext} storage path the RLS upload
+ * policies expect (see supabase/migrations/0001_init.sql). The middle segment
+ * is any per-upload folder (a random UUID) — the RLS policy only pins the
+ * first segment to the uploader's uid. */
 export function buildStoragePath(
   userId: string,
-  itemId: string,
+  folder: string,
   kind: 'model' | 'cover',
   filename: string,
 ): string {
   const ext = fileExtension(filename)
-  return `${userId}/${itemId}/${kind}${ext ? `.${ext}` : ''}`
+  return `${userId}/${folder}/${kind}${ext ? `.${ext}` : ''}`
+}
+
+/**
+ * Defense-in-depth check for the client-side-upload flow: files are now
+ * uploaded straight from the browser to Storage, so the server action is
+ * handed a path string rather than the bytes. Before trusting that string as
+ * a row value, confirm it actually lives inside `${userId}/…` — exactly the
+ * `{uid}/{folder}/{file}` shape the RLS write policy enforces — and carries no
+ * `..` traversal. Storage RLS already blocks a cross-user *write*; this stops
+ * a crafted request from *recording* a path pointing outside the owner's
+ * folder (e.g. at another user's file) on the item row.
+ */
+export function isOwnedStoragePath(path: string, userId: string): boolean {
+  if (!path || path.includes('..')) return false
+  const segments = path.split('/')
+  return (
+    segments.length === 3 &&
+    segments[0] === userId &&
+    segments[1].length > 0 &&
+    segments[2].length > 0
+  )
 }
