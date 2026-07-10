@@ -3,6 +3,7 @@ import {
   buildStoragePath,
   fileExtension,
   isGltfFile,
+  isOwnedStoragePath,
   MAX_IMAGE_FILE_BYTES,
   MAX_MODEL_FILE_BYTES,
   validateUploadFile,
@@ -111,5 +112,35 @@ describe('buildStoragePath', () => {
 
   it('omits the extension segment cleanly when there is none', () => {
     expect(buildStoragePath('user-1', 'item-1', 'cover', 'noext')).toBe('user-1/item-1/cover')
+  })
+})
+
+describe('isOwnedStoragePath', () => {
+  it('accepts a well-formed path inside the user’s own folder', () => {
+    expect(isOwnedStoragePath('user-1/folder-1/cover.jpg', 'user-1')).toBe(true)
+    expect(isOwnedStoragePath('user-1/folder-1/model.ifc', 'user-1')).toBe(true)
+  })
+
+  it('rejects a path owned by a different user', () => {
+    // The crux: a crafted request must not be able to record someone else’s
+    // file path onto its own item row.
+    expect(isOwnedStoragePath('user-2/folder-1/cover.jpg', 'user-1')).toBe(false)
+  })
+
+  it('rejects path traversal', () => {
+    expect(isOwnedStoragePath('user-1/../user-2/folder/cover.jpg', 'user-1')).toBe(false)
+    expect(isOwnedStoragePath('user-1/folder/../../secret', 'user-1')).toBe(false)
+  })
+
+  it('rejects the wrong number of segments (too few or too many)', () => {
+    expect(isOwnedStoragePath('user-1/cover.jpg', 'user-1')).toBe(false)
+    expect(isOwnedStoragePath('user-1/folder/sub/cover.jpg', 'user-1')).toBe(false)
+    expect(isOwnedStoragePath('user-1', 'user-1')).toBe(false)
+  })
+
+  it('rejects empty segments and empty input', () => {
+    expect(isOwnedStoragePath('user-1//cover.jpg', 'user-1')).toBe(false)
+    expect(isOwnedStoragePath('user-1/folder/', 'user-1')).toBe(false)
+    expect(isOwnedStoragePath('', 'user-1')).toBe(false)
   })
 })
