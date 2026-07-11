@@ -3,6 +3,11 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { computeHighlightColor, remapIfcMatrixToThreeRowMajor } from './viewportUtils'
 
+// Mirrors engine::render::RenderShape (serde tag = "kind").
+type RenderShape =
+    | { kind: 'box'; size: [number, number, number] }
+    | { kind: 'cylinder'; radius: number; height: number }
+
 interface ConstructionObject {
     id: string
     name: string
@@ -11,6 +16,7 @@ interface ConstructionObject {
     position: [number, number, number] | null
     dimensions: [number, number, number] | null
     matrix: number[] | null   // 16 floats, row-major, IFC Z-up space
+    render_shape?: RenderShape | null
 }
 
 interface ViewportProps {
@@ -140,67 +146,22 @@ export default function Viewport({ objects, selectedId, onSelect, clashingIds }:
         })
         meshMapRef.current = {}
 
-        // Updating for shape-awareness: use entity_type to determine geometry type
-        // In-progress
         objects.forEach((obj) => {
             const color = TRADE_COLORS[obj.trade] ?? 0x888888
-            const entity = obj.entity_type ?? ''
-
-            // based on IFC entity type
+            // Geometry primitive comes from the engine (engine::render) — the
+            // single source of truth, so the desktop and web viewers stay in
+            // sync with no per-type shape logic to drift here. Model space is
+            // z-up; Three.js is y-up, so a box's model [x, y, z] maps to
+            // BoxGeometry(x, z, y).
             let geo: THREE.BufferGeometry
-
-            if (entity.includes('WALL')) {
-                // walls: thin, tall, wide
-                const w = obj.dimensions?.[0] ?? 4.0
-                const h = obj.dimensions?.[2] ?? 2.5
-                const d = obj.dimensions?.[1] ?? 0.3
-                geo = new THREE.BoxGeometry(w, h, d)
-            } else if (entity.includes('SLAB') || entity.includes('FLOOR') || entity.includes('PLATE')) {
-                // slabs: wide, flat
-                const w = obj.dimensions ? obj.dimensions[0] : 4.0
-                const d = obj.dimensions ? obj.dimensions[1] : 4.0
-                const h = obj.dimensions ? obj.dimensions[2] : 0.2
-                geo = new THREE.BoxGeometry(w, h, d)
-            } else if (entity.includes('COLUMN')) {
-                // columns: narrow, tall
-                const h = obj.dimensions ? obj.dimensions[2] : 3.0
-                const r = obj.dimensions ? obj.dimensions[0] / 2 : 0.3
-                geo = new THREE.CylinderGeometry(r, r, h, 16)
-            } else if (entity.includes('BEAM')) {
-                // beams: long, horizontal, narrow cross-section
-                const l = obj.dimensions ? obj.dimensions[0] : 4.0
-                geo = new THREE.BoxGeometry(l, 0.4, 0.3)
-            } else if (entity.includes('DOOR')) {
-                // doors: thin panel
-                geo = new THREE.BoxGeometry(1.0, 2.0, 0.1)
-            } else if (entity.includes('WINDOW')) {
-                // windows: flat thin panel
-                geo = new THREE.BoxGeometry(1.5, 1.5, 0.1)
-            } else if (entity.includes('ROOF')) {
-                // roofs: wide, sloped
-                const w = obj.dimensions ? obj.dimensions[0] : 4.0
-                const d = obj.dimensions ? obj.dimensions[1] : 4.0
-                const h = obj.dimensions ? obj.dimensions[2] : 0.2
-                geo = new THREE.BoxGeometry(w, h, d)
-            } else if (entity.includes('STAIR')) {
-                // stairs: wide stepped approximation
-                geo = new THREE.BoxGeometry(3.0, 1.5, 4.0)
-            } else if (entity.includes('PIPE')) {
-                // pipes: long cylinders
-                const l = obj.dimensions ? obj.dimensions[0] : 4.0
-                geo = new THREE.CylinderGeometry(0.05,0.05,l, 12)
-            } else if (entity.includes('DUCT')) {
-                // ducts: long rectangular prisms
-                const l = obj.dimensions ? obj.dimensions[0] : 3.0
-                geo = new THREE.BoxGeometry(l, 0.3, 0.4)
-            } else if (obj.dimensions) {
-                // Unrecognized entity type (e.g. DXF civil linework) but real
-                // dimensions are known — render at actual scale rather than a
-                // fixed-size placeholder that would misrepresent its footprint.
-                const [w, d, h] = obj.dimensions
-                geo = new THREE.BoxGeometry(w, h, d)
+            const shape = obj.render_shape
+            if (shape && shape.kind === 'cylinder') {
+                geo = new THREE.CylinderGeometry(shape.radius, shape.radius, shape.height, 16)
+            } else if (shape && shape.kind === 'box') {
+                const [x, y, z] = shape.size
+                geo = new THREE.BoxGeometry(x, z, y)
             } else {
-                // default box
+                // No shape info (e.g. an object with no geometry) — neutral box.
                 geo = new THREE.BoxGeometry(1.0, 2.0, 1.0)
             }
 

@@ -38,7 +38,7 @@ fn wrap_imported_objects(path: &str, objects: Vec<ConstructionObject>) -> Projec
 /// Pure command logic, kept separate from the #[command] wrapper so it can be
 /// unit tested against a plain AppState without spinning up a Tauri runtime.
 fn load_project_impl(path: &str, state: &AppState) -> Result<Project, String> {
-    let project = if path.ends_with(".ifc") {
+    let mut project = if path.ends_with(".ifc") {
         let objects = parse_ifc_file(path).map_err(|e| e.to_string())?;
         wrap_imported_objects(path, objects)
     } else if path.ends_with(".dxf") {
@@ -48,6 +48,14 @@ fn load_project_impl(path: &str, state: &AppState) -> Result<Project, String> {
         // load project from .ocm file
         Project::load(path).map_err(|e| e.to_string())?
     };
+
+    // Attach the canonical render primitive (engine::render) so the viewer
+    // renders from a single source of truth instead of re-deriving per-type
+    // geometry client-side. Done for every source (IFC/DXF/OCM) here.
+    for obj in project.objects.values_mut() {
+        let shape = engine::render::shape_for(obj);
+        obj.render_shape = Some(shape);
+    }
 
     // Only reached on success — a failed load must not clobber whatever
     // project was already loaded.
