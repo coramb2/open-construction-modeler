@@ -2,6 +2,7 @@ use crate::metadata::{ApprovalStatus, ConstructionStatus, LodLevel, Trade};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use crate::relations::Relations;
+use crate::render::RenderShape;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ConstructionObject {
@@ -21,6 +22,10 @@ pub struct ConstructionObject {
     pub position: Option<[f64; 3]>,
     pub dimensions: Option<[f64; 3]>,
     pub matrix: Option<[f64; 16]>,   // world transform, row-major (IFC space)
+
+    // Display primitive derived from entity_type + dimensions (engine::render).
+    // Populated at the point objects are handed to a viewer; None until then.
+    pub render_shape: Option<RenderShape>,
 }
 
 impl ConstructionObject {
@@ -42,6 +47,7 @@ impl ConstructionObject {
             position: None,
             dimensions: None,
             matrix: None,
+            render_shape: None,
         }
     }
 }
