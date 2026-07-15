@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { fileExtension, isOwnedStoragePath } from '@/lib/uploads'
+import { fileExtension, hasAllowedExtension, isOwnedStoragePath } from '@/lib/uploads'
 import type { ItemCategory } from '@/lib/database.types'
 import { revalidatePath } from 'next/cache'
 
@@ -49,11 +49,21 @@ export async function createItem(input: CreateItemInput): Promise<CreateItemResu
   // provably belongs to this user's folder. Storage RLS already blocks a
   // cross-user write, but a path is still untrusted input on the way to the
   // items row — re-check it (null means "no file", which is allowed).
-  if (input.coverPath !== null && !isOwnedStoragePath(input.coverPath, userId)) {
-    return { error: 'Invalid cover image path.' }
+  if (input.coverPath !== null) {
+    if (!isOwnedStoragePath(input.coverPath, userId)) {
+      return { error: 'Invalid cover image path.' }
+    }
+    if (!hasAllowedExtension(input.coverPath, 'image')) {
+      return { error: 'Unsupported cover image type.' }
+    }
   }
-  if (input.modelPath !== null && !isOwnedStoragePath(input.modelPath, userId)) {
-    return { error: 'Invalid model file path.' }
+  if (input.modelPath !== null) {
+    if (!isOwnedStoragePath(input.modelPath, userId)) {
+      return { error: 'Invalid model file path.' }
+    }
+    if (!hasAllowedExtension(input.modelPath, 'model')) {
+      return { error: 'Unsupported model file type.' }
+    }
   }
 
   const modelType = input.modelPath ? fileExtension(input.modelPath) : null

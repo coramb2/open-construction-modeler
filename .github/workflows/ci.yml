@@ -47,20 +47,36 @@ jobs:
               ocm-ci \
               cargo clippy --workspace --all-targets -- -D warnings
 
-      # Informational only: current findings are DoS advisories in quick-xml,
+      # Dependency vulnerability GATE — fails the build on any NEW advisory.
+      #
+      # The only current vulnerabilities are the two quick-xml DoS advisories,
       # pulled in transitively via Tauri's macOS bundler (plist crate) for
-      # build-time Info.plist generation only — not reachable via runtime or
-      # user-supplied input in this app. Flagged here so new, actionable
-      # advisories are visible without blocking merges on build-tool noise.
-      - name: cargo audit (advisory only)
-        continue-on-error: true
+      # build-time Info.plist generation only — not present in the Linux build
+      # tree (`cargo tree -i quick-xml` is empty) nor in any runtime/user-input
+      # path. They are suppressed with a review date; the step refuses to run
+      # once that date passes, so a suppression can't silently outlive its
+      # justification. (Unmaintained/unsound *warnings* from the gtk-rs stack
+      # do not fail cargo-audit and are intentionally not gated.)
+      - name: cargo audit (gate — fail on new advisories)
         run: |
           docker run --rm \
               --user root \
               -v ${{ github.workspace }}:/app \
               -w /app \
               ocm-ci \
-              bash -c "cargo install cargo-audit --locked -q && cargo audit"
+              bash -c '
+                set -euo pipefail
+                cargo install cargo-audit --locked -q
+                EXPIRY="2026-10-01"
+                TODAY="$(date -u +%Y-%m-%d)"
+                if [[ "$TODAY" > "$EXPIRY" ]]; then
+                  echo "::error::cargo-audit suppressions expired on $EXPIRY — re-review RUSTSEC-2026-0194 / -0195."
+                  exit 1
+                fi
+                cargo audit \
+                  --ignore RUSTSEC-2026-0194 \
+                  --ignore RUSTSEC-2026-0195
+              '
 
   frontend:
     runs-on: ubuntu-latest

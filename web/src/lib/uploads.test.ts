@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   buildStoragePath,
   fileExtension,
+  hasAllowedExtension,
   isGltfFile,
   isOwnedStoragePath,
   MAX_IMAGE_FILE_BYTES,
@@ -142,5 +143,25 @@ describe('isOwnedStoragePath', () => {
     expect(isOwnedStoragePath('user-1//cover.jpg', 'user-1')).toBe(false)
     expect(isOwnedStoragePath('user-1/folder/', 'user-1')).toBe(false)
     expect(isOwnedStoragePath('', 'user-1')).toBe(false)
+  })
+})
+
+describe('hasAllowedExtension', () => {
+  it('accepts allowed extensions for each kind', () => {
+    expect(hasAllowedExtension('user/folder/cover.png', 'image')).toBe(true)
+    expect(hasAllowedExtension('user/folder/model.ifc', 'model')).toBe(true)
+    expect(hasAllowedExtension('user/folder/model.GLB', 'model')).toBe(true)
+  })
+
+  it('rejects an extension not in the kind allowlist (server-side gate)', () => {
+    // A crafted request could report any path; the server must not accept an
+    // arbitrary extension onto the item row.
+    expect(hasAllowedExtension('user/folder/cover.exe', 'image')).toBe(false)
+    expect(hasAllowedExtension('user/folder/cover.svg', 'image')).toBe(false)
+    expect(hasAllowedExtension('user/folder/model.png', 'model')).toBe(false)
+  })
+
+  it('rejects a path with no extension', () => {
+    expect(hasAllowedExtension('user/folder/cover', 'image')).toBe(false)
   })
 })
