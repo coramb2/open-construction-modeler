@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { storagePublicUrl } from '@/lib/storage-url'
 import { isGltfFile } from '@/lib/uploads'
 import GltfViewer from '@/components/GltfViewer'
+import IfcModelInfo from '@/components/IfcModelInfo'
 
 export default async function ItemDetailPage({
   params,
@@ -73,6 +74,12 @@ export default async function ItemDetailPage({
         <p className="mt-2 text-xs text-gray-500">
           In-browser preview is only available for glTF/GLB files — download to view this one.
         </p>
+      )}
+
+      {modelUrl && item.model_file_type === 'ifc' && (
+        <div className="mt-4">
+          <IfcModelInfo modelUrl={modelUrl} />
+        </div>
       )}
 
       {images.length > 0 && (
