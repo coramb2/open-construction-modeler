@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated wasm-pack output (crates/wasm) — vendored, not hand-edited.
+    "src/wasm/**",
   ]),
 ]);
 
