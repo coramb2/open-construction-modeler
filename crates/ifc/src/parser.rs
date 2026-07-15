@@ -58,10 +58,18 @@ fn is_noise_object(name: &str) -> bool {
 
 pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
     // Read the file exactly once, with path-traversal and size-cap guards
-    // (see engine::io), then build the entity index from the same buffer
-    // instead of reading the file a second time.
+    // (see engine::io), then hand the buffer to the contents-based parser —
+    // the same logic serves both the desktop (a file path) and the browser
+    // (uploaded bytes via WASM, with no filesystem).
     let contents = read_to_string_bounded(Path::new(path))?;
-    let index = IfcIndex::from_contents(&contents);
+    Ok(parse_ifc_contents(&contents))
+}
+
+/// Parses IFC text already held in memory into construction objects. This is
+/// the filesystem-free entry point the WASM build calls with uploaded file
+/// contents; `parse_ifc_file` is a thin wrapper that reads the file first.
+pub fn parse_ifc_contents(contents: &str) -> Vec<ConstructionObject> {
+    let index = IfcIndex::from_contents(contents);
     let unit_scale = detect_length_unit(&index);
     let mut objects = Vec::new();
 
@@ -145,7 +153,7 @@ pub fn parse_ifc_file(path: &str) -> Result<Vec<ConstructionObject>> {
         objects.push(obj);
     }
 
-    Ok(objects)
+    objects
 }
 
 #[cfg(test)]
@@ -159,6 +167,16 @@ mod tests {
         fs::write(path, "").unwrap();
         let result = parse_ifc_file(path).expect("parsing should succeed");
         assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_parse_ifc_contents_needs_no_filesystem() {
+        // The WASM entry point: parse straight from an in-memory string, no
+        // file path involved.
+        let contents = "#42= IFCWALLSTANDARDCASE('guid',#1,'Wall A',$,$);\n";
+        let objects = parse_ifc_contents(contents);
+        assert_eq!(objects.len(), 1);
+        assert_eq!(objects[0].name, "Wall A");
     }
 
     #[test]
