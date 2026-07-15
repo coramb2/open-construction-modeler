@@ -4,6 +4,7 @@ members = [
     "crates/ifc",
     "crates/civil",
     "crates/app",
+    "crates/wasm",
     "src-tauri",
 ]
 resolver = "2"
@@ -17,7 +18,9 @@ repository = "https://github.com/coramb2/open-construction-modeler"
 
 [workspace.dependencies]
 serde = { version = "1.0", features = ["derive"] }
-uuid = { version = "1.0", features = ["v4", "serde"] }
+# `js` provides uuid's randomness backend on wasm32 (browser crypto); it is a
+# no-op on native targets, so it is safe to enable unconditionally here.
+uuid = { version = "1.0", features = ["v4", "serde", "js"] }
 serde_json = "1.0"
 anyhow = "1.0"
 clap = { version = "4", features = ["derive"] }
