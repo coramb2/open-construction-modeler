@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import Nav from "@/components/Nav";
 
@@ -32,6 +34,11 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-gray-900 text-gray-100">
         <Nav />
         <main className="flex-1">{children}</main>
+        {/* Vercel Web Analytics (visitors/page views) + Speed Insights (real-
+            user Core Web Vitals). No-ops until enabled in the Vercel project
+            dashboard; privacy-friendly (no cross-site cookies). */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
