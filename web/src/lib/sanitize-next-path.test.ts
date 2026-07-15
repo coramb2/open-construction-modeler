@@ -34,4 +34,25 @@ describe('sanitizeNextPath', () => {
   it('rejects a path with no leading slash', () => {
     expect(sanitizeNextPath('evil.example')).toBe('/')
   })
+
+  it('rejects control characters (CR, LF, TAB, NUL, DEL)', () => {
+    // Built via char codes so no literal control chars live in the source.
+    // These enable response-splitting / URL-parsing bypasses and never appear
+    // in a legitimate same-site path.
+    const CR = String.fromCharCode(0x0d)
+    const LF = String.fromCharCode(0x0a)
+    const TAB = String.fromCharCode(0x09)
+    const NUL = String.fromCharCode(0x00)
+    const DEL = String.fromCharCode(0x7f)
+    expect(sanitizeNextPath(`/foo${CR}${LF}Set-Cookie: x=1`)).toBe('/')
+    expect(sanitizeNextPath(`/foo${TAB}bar`)).toBe('/')
+    expect(sanitizeNextPath(`/${NUL}/evil.example`)).toBe('/')
+    expect(sanitizeNextPath(`/legit${DEL}`)).toBe('/')
+  })
+
+  it('still allows a normal path with printable special characters', () => {
+    // Guards against the control-char check being too broad (matching spaces
+    // or printable punctuation).
+    expect(sanitizeNextPath('/items/abc-123?tab=info&x=1')).toBe('/items/abc-123?tab=info&x=1')
+  })
 })

@@ -84,3 +84,16 @@ export function isOwnedStoragePath(path: string, userId: string): boolean {
     segments[2].length > 0
   )
 }
+
+/**
+ * Server-side re-check that a stored path's extension is in the allowlist for
+ * its kind. The client already filters by extension when uploading, but the
+ * server action must not trust that — a crafted request could report a path
+ * with any extension, which then lands on the item row (and drives
+ * `model_file_type`). Re-validate before recording it.
+ */
+export function hasAllowedExtension(pathOrName: string, kind: 'model' | 'image'): boolean {
+  const ext = fileExtension(pathOrName)
+  const allowed = kind === 'model' ? MODEL_FILE_EXTENSIONS : IMAGE_FILE_EXTENSIONS
+  return (allowed as readonly string[]).includes(ext)
+}
