@@ -6,6 +6,7 @@ import { isGltfFile } from '@/lib/uploads'
 import GltfViewer from '@/components/GltfViewer'
 import IfcModelInfo from '@/components/IfcModelInfo'
 import AlignmentReportCard from '@/components/AlignmentReportCard'
+import ForkButton from '@/components/ForkButton'
 
 export default async function ItemDetailPage({
   params,
@@ -29,6 +30,27 @@ export default async function ItemDetailPage({
   const showViewer = modelUrl && isGltfFile(item.model_file_path)
   const images = (item.item_images ?? []).slice().sort((a, b) => a.position - b.position)
 
+  const { data: claims } = await supabase.auth.getClaims()
+  const signedIn = Boolean(claims?.claims?.sub)
+
+  // Lineage: the item this was forked from (if any), and how many forks it has.
+  let forkSource: { id: string; title: string; username: string | null } | null = null
+  if (item.forked_from) {
+    const { data: src } = await supabase
+      .from('items')
+      .select('id, title, profiles(username)')
+      .eq('id', item.forked_from)
+      .single()
+    if (src) {
+      forkSource = { id: src.id, title: src.title, username: src.profiles?.username ?? null }
+    }
+  }
+
+  const { count: forkCount } = await supabase
+    .from('items')
+    .select('id', { count: 'exact', head: true })
+    .eq('forked_from', id)
+
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
       <div className="mb-6">
@@ -42,6 +64,25 @@ export default async function ItemDetailPage({
               {item.profiles?.username ?? 'unknown'}
             </Link>
           </span>
+        </div>
+
+        {forkSource && (
+          <div className="mt-1 text-xs text-gray-500">
+            <span aria-hidden>⑂</span> forked from{' '}
+            <Link href={`/items/${forkSource.id}`} className="text-blue-400 hover:underline">
+              {forkSource.title}
+            </Link>
+            {forkSource.username && <> by {forkSource.username}</>}
+          </div>
+        )}
+
+        <div className="mt-3 flex items-center gap-3">
+          {signedIn && <ForkButton itemId={item.id} />}
+          {(forkCount ?? 0) > 0 && (
+            <span className="text-xs text-gray-500">
+              {forkCount} fork{forkCount === 1 ? '' : 's'}
+            </span>
+          )}
         </div>
       </div>
 
