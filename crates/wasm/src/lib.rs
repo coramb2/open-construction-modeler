@@ -35,3 +35,15 @@ pub fn alignment_report(contents: &str) -> Result<String, JsError> {
     let report = engine::align::alignment_report(&objects);
     serde_json::to_string(&report).map_err(|e| JsError::new(&e.to_string()))
 }
+
+/// Diff two versions of an IFC model (`before` vs `after`) — objects added /
+/// removed / modified, plus the global coordinate offset between them (a
+/// whole-model re-base). Objects are matched by IFC GlobalId. Returns the
+/// report as JSON (see `engine::diff`). Issue #25.
+#[wasm_bindgen]
+pub fn diff_ifc(before: &str, after: &str) -> Result<String, JsError> {
+    let a = ifc::parser::parse_ifc_contents(before);
+    let b = ifc::parser::parse_ifc_contents(after);
+    let report = engine::diff::diff(&a, &b);
+    serde_json::to_string(&report).map_err(|e| JsError::new(&e.to_string()))
+}

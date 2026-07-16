@@ -3,7 +3,7 @@
 // Tauri `load_project` command — the SAME tested parser and geometry, so the
 // two platforms can't drift. Output shape matches the desktop's objects,
 // including each object's `render_shape`.
-import init, { parse_ifc, alignment_report } from '@/wasm/ocm/ocm_wasm'
+import init, { parse_ifc, alignment_report, diff_ifc } from '@/wasm/ocm/ocm_wasm'
 
 export type ParsedRenderShape =
   | { kind: 'box'; size: [number, number, number] }
@@ -56,4 +56,27 @@ export async function parseIfcInBrowser(contents: string): Promise<ParsedObject[
 export async function alignmentReportInBrowser(contents: string): Promise<AlignmentReport> {
   await ready()
   return JSON.parse(alignment_report(contents)) as AlignmentReport
+}
+
+export type DiffObjectRef = { guid: string; name: string }
+export type DiffModifiedObject = { guid: string; name: string; changes: string[] }
+
+// Mirrors engine::diff::DiffReport.
+export type DiffReport = {
+  added: DiffObjectRef[]
+  removed: DiffObjectRef[]
+  modified: DiffModifiedObject[]
+  added_count: number
+  removed_count: number
+  modified_count: number
+  unchanged_count: number
+  matched_count: number
+  global_offset: [number, number, number]
+  global_offset_distance: number
+}
+
+/** Semantic + spatial diff between two IFC versions (#25). */
+export async function diffIfcInBrowser(before: string, after: string): Promise<DiffReport> {
+  await ready()
+  return JSON.parse(diff_ifc(before, after)) as DiffReport
 }

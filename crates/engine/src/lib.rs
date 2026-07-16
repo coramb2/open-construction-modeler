@@ -1,6 +1,7 @@
 pub mod align;
 pub mod bcf;
 pub mod clash;
+pub mod diff;
 pub mod io;
 pub mod metadata;
 pub mod object;

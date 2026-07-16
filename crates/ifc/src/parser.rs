@@ -115,6 +115,10 @@ pub fn parse_ifc_contents(contents: &str) -> Vec<ConstructionObject> {
             String::new(),
         );
 
+        // parts[1] is the IFC GlobalId (the first quoted string in the entity) —
+        // the stable identity used to match this object across versions.
+        obj.guid = parts.get(1).filter(|s| !s.is_empty()).map(|s| s.to_string());
+
 
 
         // World position from matrix translation column, scaled to meters

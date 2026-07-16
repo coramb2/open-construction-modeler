@@ -10,6 +10,14 @@
 export function alignment_report(contents: string): string;
 
 /**
+ * Diff two versions of an IFC model (`before` vs `after`) — objects added /
+ * removed / modified, plus the global coordinate offset between them (a
+ * whole-model re-base). Objects are matched by IFC GlobalId. Returns the
+ * report as JSON (see `engine::diff`). Issue #25.
+ */
+export function diff_ifc(before: string, after: string): string;
+
+/**
  * Parse IFC file contents (STEP text) into the normalized construction
  * objects, returned as a JSON array string.
  *
@@ -27,6 +35,7 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly alignment_report: (a: number, b: number) => [number, number, number, number];
+    readonly diff_ifc: (a: number, b: number, c: number, d: number) => [number, number, number, number];
     readonly parse_ifc: (a: number, b: number) => [number, number, number, number];
     readonly __wbindgen_exn_store: (a: number) => void;
     readonly __externref_table_alloc: () => number;
