@@ -7,6 +7,7 @@ import GltfViewer from '@/components/GltfViewer'
 import IfcModelInfo from '@/components/IfcModelInfo'
 import AlignmentReportCard from '@/components/AlignmentReportCard'
 import ForkButton from '@/components/ForkButton'
+import DiffCard from '@/components/DiffCard'
 
 export default async function ItemDetailPage({
   params,
@@ -34,17 +35,33 @@ export default async function ItemDetailPage({
   const signedIn = Boolean(claims?.claims?.sub)
 
   // Lineage: the item this was forked from (if any), and how many forks it has.
-  let forkSource: { id: string; title: string; username: string | null } | null = null
+  let forkSource: {
+    id: string
+    title: string
+    username: string | null
+    modelPath: string | null
+    modelType: string | null
+  } | null = null
   if (item.forked_from) {
     const { data: src } = await supabase
       .from('items')
-      .select('id, title, profiles(username)')
+      .select('id, title, model_file_path, model_file_type, profiles(username)')
       .eq('id', item.forked_from)
       .single()
     if (src) {
-      forkSource = { id: src.id, title: src.title, username: src.profiles?.username ?? null }
+      forkSource = {
+        id: src.id,
+        title: src.title,
+        username: src.profiles?.username ?? null,
+        modelPath: src.model_file_path,
+        modelType: src.model_file_type,
+      }
     }
   }
+  const sourceModelUrl =
+    forkSource?.modelPath && forkSource.modelType === 'ifc'
+      ? storagePublicUrl('models', forkSource.modelPath)
+      : null
 
   const { count: forkCount } = await supabase
     .from('items')
@@ -122,6 +139,7 @@ export default async function ItemDetailPage({
         <div className="mt-4 space-y-4">
           <IfcModelInfo modelUrl={modelUrl} />
           <AlignmentReportCard modelUrl={modelUrl} />
+          {sourceModelUrl && <DiffCard beforeUrl={sourceModelUrl} afterUrl={modelUrl} />}
         </div>
       )}
 

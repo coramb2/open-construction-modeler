@@ -2,6 +2,7 @@
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
 export const alignment_report: (a: number, b: number) => [number, number, number, number];
+export const diff_ifc: (a: number, b: number, c: number, d: number) => [number, number, number, number];
 export const parse_ifc: (a: number, b: number) => [number, number, number, number];
 export const __wbindgen_exn_store: (a: number) => void;
 export const __externref_table_alloc: () => number;

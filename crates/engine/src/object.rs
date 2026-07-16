@@ -10,6 +10,11 @@ pub struct ConstructionObject {
     pub name: String,
     pub trade: Trade,
     pub entity_type: Option<String>,
+    /// The source format's stable global identifier (IFC GlobalId), when
+    /// available. Unlike `id` (a fresh UUID minted per parse), this is stable
+    /// across re-parses of the same element — the anchor for matching objects
+    /// between two versions in diff/merge.
+    pub guid: Option<String>,
     pub lod: LodLevel,
     pub csi_code: String,
     pub phase: String,
@@ -36,6 +41,7 @@ impl ConstructionObject {
             name,
             trade,
             entity_type,
+            guid: None,
             lod,
             csi_code,
             phase,

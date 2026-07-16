@@ -30,6 +30,38 @@ export function alignment_report(contents) {
 }
 
 /**
+ * Diff two versions of an IFC model (`before` vs `after`) — objects added /
+ * removed / modified, plus the global coordinate offset between them (a
+ * whole-model re-base). Objects are matched by IFC GlobalId. Returns the
+ * report as JSON (see `engine::diff`). Issue #25.
+ * @param {string} before
+ * @param {string} after
+ * @returns {string}
+ */
+export function diff_ifc(before, after) {
+    let deferred4_0;
+    let deferred4_1;
+    try {
+        const ptr0 = passStringToWasm0(before, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(after, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.diff_ifc(ptr0, len0, ptr1, len1);
+        var ptr3 = ret[0];
+        var len3 = ret[1];
+        if (ret[3]) {
+            ptr3 = 0; len3 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred4_0 = ptr3;
+        deferred4_1 = len3;
+        return getStringFromWasm0(ptr3, len3);
+    } finally {
+        wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
+    }
+}
+
+/**
  * Parse IFC file contents (STEP text) into the normalized construction
  * objects, returned as a JSON array string.
  *
