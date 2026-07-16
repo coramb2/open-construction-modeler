@@ -5,6 +5,7 @@ import { storagePublicUrl } from '@/lib/storage-url'
 import { isGltfFile } from '@/lib/uploads'
 import GltfViewer from '@/components/GltfViewer'
 import IfcModelInfo from '@/components/IfcModelInfo'
+import AlignmentReportCard from '@/components/AlignmentReportCard'
 
 export default async function ItemDetailPage({
   params,
@@ -77,8 +78,9 @@ export default async function ItemDetailPage({
       )}
 
       {modelUrl && item.model_file_type === 'ifc' && (
-        <div className="mt-4">
+        <div className="mt-4 space-y-4">
           <IfcModelInfo modelUrl={modelUrl} />
+          <AlignmentReportCard modelUrl={modelUrl} />
         </div>
       )}
 

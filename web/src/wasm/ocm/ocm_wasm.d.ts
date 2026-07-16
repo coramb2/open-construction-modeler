@@ -2,6 +2,14 @@
 /* eslint-disable */
 
 /**
+ * Parse IFC contents and return the coordinate-drift / alignment report as
+ * JSON (see `engine::align`). A standalone check on a single model: flags a
+ * model that sits far from the origin (lost base/survey point) and individual
+ * objects flung far outside the main cluster (misplaced). Issue #23.
+ */
+export function alignment_report(contents: string): string;
+
+/**
  * Parse IFC file contents (STEP text) into the normalized construction
  * objects, returned as a JSON array string.
  *
@@ -18,6 +26,7 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
+    readonly alignment_report: (a: number, b: number) => [number, number, number, number];
     readonly parse_ifc: (a: number, b: number) => [number, number, number, number];
     readonly __wbindgen_exn_store: (a: number) => void;
     readonly __externref_table_alloc: () => number;
