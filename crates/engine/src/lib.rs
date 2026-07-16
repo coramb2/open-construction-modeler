@@ -1,3 +1,4 @@
+pub mod align;
 pub mod bcf;
 pub mod clash;
 pub mod io;

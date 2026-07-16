@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run",
-    "gen:wasm": "wasm-pack build ../crates/wasm --target web --release --out-dir src/wasm/ocm && rm -f src/wasm/ocm/.gitignore"
+    "gen:wasm": "wasm-pack build ../crates/wasm --target web --release --out-dir ../../web/src/wasm/ocm && rm -f src/wasm/ocm/.gitignore"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

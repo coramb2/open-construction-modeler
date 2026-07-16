@@ -24,3 +24,14 @@ pub fn parse_ifc(contents: &str) -> Result<String, JsError> {
     }
     serde_json::to_string(&objects).map_err(|e| JsError::new(&e.to_string()))
 }
+
+/// Parse IFC contents and return the coordinate-drift / alignment report as
+/// JSON (see `engine::align`). A standalone check on a single model: flags a
+/// model that sits far from the origin (lost base/survey point) and individual
+/// objects flung far outside the main cluster (misplaced). Issue #23.
+#[wasm_bindgen]
+pub fn alignment_report(contents: &str) -> Result<String, JsError> {
+    let objects = ifc::parser::parse_ifc_contents(contents);
+    let report = engine::align::alignment_report(&objects);
+    serde_json::to_string(&report).map_err(|e| JsError::new(&e.to_string()))
+}
