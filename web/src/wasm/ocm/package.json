@@ -1,0 +1,16 @@
+{
+  "name": "ocm-wasm",
+  "type": "module",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "files": [
+    "ocm_wasm_bg.wasm",
+    "ocm_wasm.js",
+    "ocm_wasm.d.ts"
+  ],
+  "main": "ocm_wasm.js",
+  "types": "ocm_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
