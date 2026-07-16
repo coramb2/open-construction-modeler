@@ -29,6 +29,7 @@ export type Item = {
   model_file_path: string | null
   model_file_type: string | null
   cover_image_path: string | null
+  forked_from: string | null
   published: boolean
   created_at: string
   updated_at: string
